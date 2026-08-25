@@ -1,0 +1,27 @@
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+html{background:#0b0d0f}
+body{margin:0;padding:18px 14px 48px;background:#0b0d0f;color:#f1f1ed;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+button{font:inherit;color:inherit}
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 2px 18px;border-bottom:1px solid #34383c;margin-bottom:16px}
+.eyebrow{font-size:10px;letter-spacing:.18em;opacity:.58;margin-bottom:5px}.progress{font-size:16px;letter-spacing:.04em}
+#testQr,.qr-sim,.secondary{min-height:44px;border:1px solid currentColor;background:transparent;padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.06em}
+.album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;max-width:680px;margin:0 auto}
+.slot{min-width:0}.card-button{display:block;width:100%;padding:0;border:0;background:transparent;text-align:left}.card-frame{position:relative;aspect-ratio:2/3;overflow:hidden;border-radius:7px;background:#17191b;border:1px solid #3c4145}
+.card-image{width:100%;height:100%;object-fit:cover;display:block;transition:filter .75s ease,transform .75s ease;transform:scale(1)}
+.locked .card-image{filter:blur(20px) grayscale(1) brightness(.32);transform:scale(1.12)}
+.shade{position:absolute;inset:0;background:rgba(0,0,0,.46);opacity:0;transition:opacity .75s ease}.locked .shade{opacity:1}
+.slot-meta{display:flex;justify-content:space-between;align-items:center;min-height:27px;padding:7px 3px 0;font-size:12px;font-weight:800;letter-spacing:.08em}
+.revealing .card-image{filter:none;transform:scale(1)}.revealing .shade{opacity:0}.revealing .card-frame{outline:2px solid #fff;outline-offset:3px}
+#gallery{width:min(94vw,620px);max-width:620px;border:1px solid #44494d;border-radius:10px;padding:14px;background:#090b0d;color:#f4f4f0}
+#gallery::backdrop{background:rgba(0,0,0,.82)}.gallery-head{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;margin-bottom:14px}.gallery-head button,.gallery-stage button{width:44px;height:44px;border:1px solid currentColor;background:transparent;font-size:28px}.gallery-head>div{text-align:center;font-size:12px;letter-spacing:.14em}
+.gallery-stage{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:9px;align-items:center}.gallery-card{position:relative;aspect-ratio:2/3;overflow:hidden;border-radius:9px;border:1px solid #44494d;background:#17191b}.gallery-card.locked .card-image{filter:blur(28px) grayscale(1) brightness(.3);transform:scale(1.14)}.gallery-card.locked .shade{opacity:1}.gallery-meta{text-align:center;padding:16px 0 6px;font-size:14px;font-weight:800;letter-spacing:.12em}
+.reveal-bar{position:sticky;bottom:12px;margin:22px auto 0;max-width:430px;padding:12px 14px;background:#f1f1ed;color:#111;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.1em}.reveal-bar button{min-height:44px;border:1px solid currentColor;background:transparent;padding:0 14px}.toast{margin:20px auto 0;max-width:430px;padding:16px;text-align:center;border:1px solid currentColor;font-size:12px;font-weight:800;letter-spacing:.1em}
+[hidden]{display:none!important}
+@media(max-width:380px){body{padding-left:10px;padding-right:10px}.album-grid{gap:15px 9px}.topbar{align-items:flex-start;flex-direction:column}#testQr,.qr-sim,.secondary{width:100%}}
+@media(prefers-reduced-motion:reduce){.card-image,.shade{transition:none!important}}
+
+#qrDialog{width:min(92vw,430px);border:1px solid #44494d;border-radius:10px;padding:16px;background:#090b0d;color:#f4f4f0}
+#qrDialog::backdrop{background:rgba(0,0,0,.82)}
+.dialog-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.dialog-head button{width:44px;height:44px;border:1px solid currentColor;background:transparent;font-size:26px}.qr-sim,.secondary{display:block;width:100%;min-height:48px;border:1px solid currentColor;background:transparent;margin-top:10px;padding:10px;font-weight:800;letter-spacing:.06em}.secondary{opacity:.65}#qrDialog p{font-size:12px;line-height:1.5;opacity:.7}
+.locked .card-image{filter:none!important;transform:none!important}.locked .shade{opacity:.32}.gallery-card.locked .card-image{filter:none!important;transform:none!important}.gallery-card.locked .shade{opacity:.32}
