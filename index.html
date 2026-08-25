@@ -13,7 +13,9 @@
     <div><div class="eyebrow">ALBUM DIGITALE · CIFRATO</div><div class="progress"><strong id="ownedCount">0</strong> / 20 SBLOCCATE</div></div>
     <button id="testQr" type="button">TEST QR</button>
   </header>
+
   <main id="albumGrid" class="album-grid" aria-label="Album di 20 card"></main>
+
   <dialog id="qrDialog">
     <div class="dialog-head"><strong>QR DI TEST</strong><button id="closeQr" type="button" aria-label="Chiudi">×</button></div>
     <p>Questi pulsanti simulano QR che contengono ID e chiavi delle card.</p>
@@ -21,11 +23,17 @@
     <button class="qr-sim" id="qrB" type="button">QR B · 5 CARD</button>
     <button id="resetDemo" class="secondary" type="button">RESET DEMO</button>
   </dialog>
-  <dialog id="gallery">
-    <div class="gallery-head"><button id="closeGallery" type="button" aria-label="Chiudi">×</button><div id="galleryPosition"></div><span></span></div>
-    <div class="gallery-stage"><button id="prevCard" type="button" aria-label="Precedente">‹</button><div id="galleryCard" class="gallery-card" tabindex="0"></div><button id="nextCard" type="button" aria-label="Successiva">›</button></div>
+
+  <dialog id="gallery" aria-label="Galleria card">
+    <div class="gallery-head">
+      <button id="closeGallery" type="button" aria-label="Chiudi galleria">×</button>
+      <div id="galleryPosition"></div>
+      <span aria-hidden="true"></span>
+    </div>
+    <div id="galleryTrack" class="gallery-track" tabindex="0" aria-label="Scorri orizzontalmente le card"></div>
     <div id="galleryMeta" class="gallery-meta"></div>
   </dialog>
+
   <div id="revealBar" class="reveal-bar" hidden><span id="revealText">SBLOCCO IN CORSO</span><button id="skipReveal" type="button">SALTA</button></div>
   <div id="toast" class="toast" hidden></div>
   <script src="app.js"></script>
