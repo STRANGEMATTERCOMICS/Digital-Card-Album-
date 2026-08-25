@@ -119,5 +119,5 @@ document.getElementById('closeQr').addEventListener('click',()=>qrDialog.close()
 document.getElementById('qrA').addEventListener('click',()=>importQr(QR_A));
 document.getElementById('qrB').addEventListener('click',()=>importQr(QR_B));
 document.getElementById('resetDemo').addEventListener('click',async()=>{localStorage.removeItem(STORAGE_KEY);for(const u of decryptedUrls.values())URL.revokeObjectURL(u);decryptedUrls.clear();state.keys={};state.usedQr=new Set();qrDialog.close();toast.textContent='DEMO AZZERATA';toast.hidden=false;await render();});
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{}));}
 render();
