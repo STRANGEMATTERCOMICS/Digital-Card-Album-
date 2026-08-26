@@ -86,3 +86,9 @@
 - Il copyright appartiene al contenitore splash e sfuma insieme alla splash; ha anche una propria transizione di opacità sincronizzata.
 - Cache Service Worker aggiornata a `album-digitale-master-2026-08-27-v4-english-splash`.
 - Questa v4 sostituisce la v3 come base MASTER ufficiale.
+
+
+## MASTER v5 — QR compatibility fix
+- QR scanner now normalizes scanned content before decoding.
+- Supported scanned forms: raw `AD1...`, URL with `?qr=AD1...`, URL/hash with `#qr=AD1...`, direct `#AD1...`, and text containing an `AD1...` payload.
+- This fixes the case where the camera successfully reads a QR but the album does not unlock cards because the scanned value is a full URL rather than a bare payload.
