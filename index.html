@@ -5,23 +5,26 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b0d0f">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20260826-ui8">
+  <link rel="stylesheet" href="style.css">
   <title>Album Digitale</title>
 </head>
-<body>
-  <div id="splashScreen" class="splash-screen" aria-hidden="true">
-    <img src="icons/splash.webp" alt="">
+<body class="splash-active">
+  <div id="splashScreen" class="splash-screen" role="presentation" aria-hidden="true">
+    <img id="splashImage" class="splash-image" src="splash.png" alt="" onerror="this.onerror=null;this.src='icons/icon-512.png'">
   </div>
   <header class="topbar">
     <div><div class="eyebrow">ALBUM DIGITALE · CIFRATO</div><div class="progress"><strong id="ownedCount">0</strong> / 20 SBLOCCATE</div></div>
-    <button id="scanQr" type="button">SCANSIONA QR</button>
+    <button id="testQr" type="button">TEST QR</button>
   </header>
 
   <main id="albumGrid" class="album-grid" aria-label="Album di 20 card"></main>
-<dialog id="scannerDialog" aria-label="Scanner QR">
-    <div class="dialog-head"><strong>SCANSIONA QR</strong><button id="closeScanner" type="button" aria-label="Chiudi scanner">×</button></div>
-    <div class="scanner-stage"><video id="scannerVideo" playsinline muted></video><div class="scanner-frame" aria-hidden="true"></div></div>
-    <p id="scannerStatus">Inquadra il QR firmato all'interno del riquadro.</p>
+
+  <dialog id="qrDialog">
+    <div class="dialog-head"><strong>QR DI TEST</strong><button id="closeQr" type="button" aria-label="Chiudi">×</button></div>
+    <p>Questi pulsanti simulano QR che contengono ID e chiavi delle card.</p>
+    <button class="qr-sim" id="qrA" type="button">QR A · 5 CARD</button>
+    <button class="qr-sim" id="qrB" type="button">QR B · 5 CARD</button>
+    <button id="resetDemo" class="secondary" type="button">RESET DEMO</button>
   </dialog>
 
   <dialog id="gallery" aria-label="Galleria card">
@@ -36,6 +39,6 @@
 
   <div id="revealBar" class="reveal-bar" hidden><span id="revealText">SBLOCCO IN CORSO</span><button id="skipReveal" type="button">SALTA</button></div>
   <div id="toast" class="toast" hidden></div>
-  <script src="app.js?v=20260826-ui8"></script>
+  <script src="app.js"></script>
 </body>
 </html>

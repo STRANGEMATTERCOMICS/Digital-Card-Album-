@@ -1,6 +1,8 @@
 # ALBUM DIGITALE — HANDOFF PER WORK
 
 ## Stato corrente
+- Splash screen ripristinata: overlay full-screen a ogni avvio, durata 2 s + fade-out. Usa `splash.png` se presente nella root; fallback automatico a `icons/icon-512.png`.
+- Cache PWA aggiornata a `album-digitale-encrypted-v2-splash` per forzare il refresh dei file applicativi.
 Prototipo PWA mobile-first funzionante, già verificato su telefono tramite GitHub Pages e installabile come PWA.
 
 ## Regole UI fissate

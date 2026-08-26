@@ -3,9 +3,15 @@
 html{background:#0b0d0f}
 body{margin:0;padding:18px 14px 48px;background:#0b0d0f;color:#f1f1ed;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
 button{font:inherit;color:inherit}
+
+/* SPLASH SCREEN: visibile a ogni avvio, poi fade-out */
+body.splash-active{overflow:hidden}
+.splash-screen{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:#0b0d0f;opacity:1;visibility:visible;transition:opacity .45s ease,visibility 0s linear .45s}
+.splash-screen.is-hiding{opacity:0;visibility:hidden;pointer-events:none}
+.splash-image{display:block;max-width:min(86vw,560px);max-height:82vh;width:auto;height:auto;object-fit:contain}
 .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 2px 18px;border-bottom:1px solid #34383c;margin-bottom:16px}
 .eyebrow{font-size:10px;letter-spacing:.18em;opacity:.58;margin-bottom:5px}.progress{font-size:16px;letter-spacing:.04em}
-.qr-sim,.secondary{min-height:44px;border:1px solid currentColor;background:transparent;padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.06em}
+#testQr,.qr-sim,.secondary{min-height:44px;border:1px solid currentColor;background:transparent;padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.06em}
 
 /* ALBUM: invariato, 2 slot affiancati */
 .album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;max-width:680px;margin:0 auto}
@@ -16,69 +22,19 @@ button{font:inherit;color:inherit}
 .slot-meta{display:flex;justify-content:space-between;align-items:center;min-height:27px;padding:7px 3px 0;font-size:12px;font-weight:800;letter-spacing:.08em}
 .revealing .card-image{filter:none;transform:scale(1)}.revealing .shade{opacity:0}.revealing .card-frame{outline:2px solid #fff;outline-offset:3px}
 
-/* GALLERY — card centrata sul CENTRO REALE DEL VIEWPORT + fondo adattivo */
-#gallery{
-  --gallery-bg:#090b0d;
-  position:fixed; inset:0;
-  width:100vw; max-width:none;
-  height:100dvh; max-height:none;
-  margin:0; border:0; border-radius:0; padding:0;
-  background:var(--gallery-bg);
-  color:#f4f4f0;
-  overflow:hidden;
-  transition:background-color .55s ease;
-}
-#gallery[open]{display:block}
-#gallery::backdrop{background:rgba(0,0,0,.94)}
-.gallery-head{
-  position:absolute; z-index:4; top:0; left:0; right:0;
-  display:grid; grid-template-columns:52px 1fr 52px; align-items:center;
-  padding:max(10px,env(safe-area-inset-top)) 10px 6px;
-  pointer-events:none;
-}
-.gallery-head button{
-  pointer-events:auto;
-  width:44px;height:44px;border:1px solid currentColor;
-  background:rgba(0,0,0,.22);font-size:28px;line-height:1;
-}
-.gallery-head>div{text-align:center;font-size:12px;letter-spacing:.14em;text-shadow:0 1px 5px #000}
-.gallery-track{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  display:flex; gap:0; align-items:center;
-  overflow-x:auto; overflow-y:hidden;
-  overscroll-behavior-x:contain;
-  scroll-snap-type:x mandatory; scroll-behavior:smooth;
-  padding:0; scrollbar-width:none; touch-action:pan-x; outline:none;
-}
+/* GALLERY: card grandi, swipe orizzontale, snap, niente frecce */
+#gallery{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;border:0;border-radius:0;padding:0;background:#090b0d;color:#f4f4f0;overflow:hidden}
+#gallery[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+#gallery::backdrop{background:rgba(0,0,0,.92)}
+.gallery-head{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;padding:max(10px,env(safe-area-inset-top)) 10px 8px;min-height:62px}
+.gallery-head button{width:44px;height:44px;border:1px solid currentColor;background:transparent;font-size:28px;line-height:1}
+.gallery-head>div{text-align:center;font-size:12px;letter-spacing:.14em}
+.gallery-track{display:flex;align-items:center;gap:8px;min-height:0;height:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:8px 6%;scrollbar-width:none;touch-action:pan-x;outline:none}
 .gallery-track::-webkit-scrollbar{display:none}
-.gallery-slide{
-  height:100%; flex:0 0 100%;
-  scroll-snap-align:center; scroll-snap-stop:always;
-  min-width:0; display:flex; align-items:center; justify-content:center;
-  padding:calc(env(safe-area-inset-top) + 8px) 3vw calc(env(safe-area-inset-bottom) + 8px);
-}
-.gallery-card{
-  --card-ratio:2/3;
-  position:relative;
-  width:min(94vw,calc(88dvh * var(--card-ratio)));
-  height:min(88dvh,calc(94vw / var(--card-ratio)));
-  aspect-ratio:var(--card-ratio);
-  overflow:hidden;border-radius:9px;
-  border:1px solid rgba(255,255,255,.24);
-  background:#17191b;box-shadow:0 18px 60px rgba(0,0,0,.28);
-}
-.gallery-card .card-image{width:100%;height:100%;object-fit:contain;background:transparent}
+.gallery-slide{flex:0 0 min(88vw,520px);scroll-snap-align:center;scroll-snap-stop:always;min-width:0;max-height:100%;display:flex;align-items:center;justify-content:center}
+.gallery-card{position:relative;width:min(100%,calc((100dvh - 150px)*2/3));aspect-ratio:2/3;overflow:hidden;border-radius:9px;border:1px solid #44494d;background:#17191b}
 .gallery-card.locked .shade{opacity:.32}
-.gallery-meta{
-  position:absolute;z-index:4;left:0;right:0;bottom:0;
-  text-align:center;
-  padding:8px 10px max(12px,env(safe-area-inset-bottom));
-  font-size:14px;font-weight:800;letter-spacing:.12em;
-  min-height:38px;
-  text-shadow:0 1px 5px #000;
-  pointer-events:none;
-}
+.gallery-meta{text-align:center;padding:12px 10px max(12px,env(safe-area-inset-bottom));font-size:14px;font-weight:800;letter-spacing:.12em;min-height:32px}
 
 .reveal-bar{position:sticky;bottom:12px;margin:22px auto 0;max-width:430px;padding:12px 14px;background:#f1f1ed;color:#111;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.1em}.reveal-bar button{min-height:44px;border:1px solid currentColor;background:transparent;padding:0 14px}.toast{margin:20px auto 0;max-width:430px;padding:16px;text-align:center;border:1px solid currentColor;font-size:12px;font-weight:800;letter-spacing:.1em}
 [hidden]{display:none!important}
@@ -87,37 +43,6 @@ button{font:inherit;color:inherit}
 #qrDialog::backdrop{background:rgba(0,0,0,.82)}
 .dialog-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.dialog-head button{width:44px;height:44px;border:1px solid currentColor;background:transparent;font-size:26px}.qr-sim,.secondary{display:block;width:100%;min-height:48px;border:1px solid currentColor;background:transparent;margin-top:10px;padding:10px;font-weight:800;letter-spacing:.06em}.secondary{opacity:.65}#qrDialog p{font-size:12px;line-height:1.5;opacity:.7}
 
-@media(max-width:380px){body{padding-left:10px;padding-right:10px}.album-grid{gap:15px 9px}.topbar{align-items:flex-start;flex-direction:column}.qr-sim,.secondary{width:100%}}
-
+@media(max-width:380px){body{padding-left:10px;padding-right:10px}.album-grid{gap:15px 9px}.topbar{align-items:flex-start;flex-direction:column}#testQr,.qr-sim,.secondary{width:100%}.gallery-slide{flex-basis:90vw}.gallery-track{padding-left:5%;padding-right:5%}}
+@media(min-width:700px){.gallery-slide{flex-basis:min(70vw,560px)}.gallery-track{padding-left:15%;padding-right:15%}}
 @media(prefers-reduced-motion:reduce){.card-image,.shade{transition:none!important}.gallery-track{scroll-behavior:auto}}
-
-#scanQr{min-height:44px;border:1px solid currentColor;background:transparent;padding:8px 12px;font-size:11px;font-weight:800;letter-spacing:.06em}
-#scannerDialog{width:min(94vw,520px);border:1px solid #44494d;border-radius:10px;padding:14px;background:#090b0d;color:#f4f4f0}
-#scannerDialog::backdrop{background:rgba(0,0,0,.9)}
-.scanner-stage{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:8px;background:#000}
-#scannerVideo{width:100%;height:100%;object-fit:cover;display:block}
-.scanner-frame{position:absolute;inset:16%;border:2px solid rgba(255,255,255,.9);border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
-#scannerDialog p{font-size:12px;line-height:1.45;opacity:.8;margin:12px 2px 2px}
-@media(max-width:380px){#scanQr{width:100%}}
-
-
-/* SPLASH SCREEN */
-.splash-screen{position:fixed;inset:0;z-index:10000;width:100vw;height:100dvh;display:grid;place-items:center;background:#020609;opacity:1;visibility:visible;transition:opacity .65s ease,visibility 0s linear .65s}
-.splash-screen img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
-.splash-screen.splash-hide{opacity:0;visibility:hidden;pointer-events:none}
-@media (orientation:landscape){.splash-screen img{object-fit:contain;background:#020609}}
-
-/* Fallback: if the OS/browser ignores the PWA portrait lock, do not render the album sideways. */
-.rotate-guard{display:none}
-@media (orientation:landscape) and (max-height:600px){
-  body::after{
-    content:"RUOTA IL DISPOSITIVO";
-    position:fixed;inset:0;z-index:20000;
-    display:grid;place-items:center;
-    background:#020609;color:#fff;
-    font-size:14px;font-weight:900;letter-spacing:.14em;
-    text-align:center;padding:24px;
-  }
-  body>*{visibility:hidden}
-  body::after{visibility:visible}
-}
