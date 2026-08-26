@@ -39,24 +39,44 @@ function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){con
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify({keys:state.keys,usedQr:[...state.usedQr]}));}
 function pad(n){return String(n).padStart(3,'0')}
 function isUnlocked(id){return typeof state.keys[id]==='string'&&state.keys[id].length>20}
-function b64uToBytes(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const raw=atob(s);return Uint8Array.from(raw,c=>c.charCodeAt(0));}
+function b64uToBytes(value){
+  if(typeof value!=='string')throw new Error('Invalid Base64 data');
+  let s=value.trim().replace(/\s+/g,'').replace(/-/g,'+').replace(/_/g,'/');
+  if(!s||!/^[A-Za-z0-9+/]*={0,2}$/.test(s)||s.length%4===1)throw new Error('Invalid Base64 data');
+  s=s.replace(/=+$/,'');
+  while(s.length%4)s+='=';
+  try{
+    const raw=atob(s);
+    return Uint8Array.from(raw,c=>c.charCodeAt(0));
+  }catch(e){throw new Error('Invalid Base64 data');}
+}
 function normalizeQrText(text){
   if(typeof text!=='string')return '';
   let value=text.trim();
   try{value=decodeURIComponent(value);}catch(e){}
-  if(value.startsWith('AD1.'))return value;
   try{
     const u=new URL(value,location.href);
     const q=u.searchParams.get('qr');
-    if(q&&q.startsWith('AD1.'))return q;
+    if(q)value=q;
     const h=u.hash.replace(/^#/,'');
-    if(h.startsWith('qr=')){const hv=decodeURIComponent(h.slice(3));if(hv.startsWith('AD1.'))return hv;}
-    if(h.startsWith('AD1.'))return decodeURIComponent(h);
+    if(h.startsWith('qr='))value=decodeURIComponent(h.slice(3));
+    else if(h.startsWith('AD1.'))value=decodeURIComponent(h);
   }catch(e){}
   const match=value.match(/AD1\.[A-Za-z0-9_-]+/);
-  return match?match[0]:value;
+  return match?match[0]:'';
 }
-function decodePayload(text){const value=normalizeQrText(text);if(!value.startsWith('AD1.'))throw new Error('QR code not recognized');const raw=new TextDecoder().decode(b64uToBytes(value.slice(4)));const p=JSON.parse(raw);if(p.v!==1||typeof p.pack!=='string'||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Invalid QR payload');for(const item of p.cards){if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string')throw new Error('Invalid QR card');}return p;}
+function decodePayload(text){
+  const value=normalizeQrText(text);
+  if(!value)throw new Error('QR code not recognized');
+  let p;
+  try{
+    const raw=new TextDecoder('utf-8',{fatal:true}).decode(b64uToBytes(value.slice(4)));
+    p=JSON.parse(raw);
+  }catch(e){throw new Error('Invalid QR code');}
+  if(p.v!==1||typeof p.pack!=='string'||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Invalid QR payload');
+  for(const item of p.cards){if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(item.k))throw new Error('Invalid QR card');}
+  return p;
+}
 async function decryptCard(id,keyText){if(decryptedUrls.has(id))return decryptedUrls.get(id);const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('Invalid encrypted file');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,url);return url;}
 async function imageFor(c){if(!isUnlocked(c.id))return c.preview;try{return await decryptCard(c.id,state.keys[c.id]);}catch(e){return c.preview;}}
 

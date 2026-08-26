@@ -92,3 +92,10 @@
 - QR scanner now normalizes scanned content before decoding.
 - Supported scanned forms: raw `AD1...`, URL with `?qr=AD1...`, URL/hash with `#qr=AD1...`, direct `#AD1...`, and text containing an `AD1...` payload.
 - This fixes the case where the camera successfully reads a QR but the album does not unlock cards because the scanned value is a full URL rather than a bare payload.
+
+## MASTER v6 — QR Base64 decoder fix
+- The QR normalizer now extracts only the `AD1.<payload>` segment before Base64 decoding, excluding URL suffixes, punctuation and any additional dot-separated segment.
+- Base64URL validation and padding are handled before `atob()`; native browser exceptions are no longer shown to the user.
+- Malformed QR codes now produce the controlled message `INVALID QR CODE`.
+- AES card keys are validated as 32-byte Base64URL values before they are saved.
+- Service Worker cache updated to `album-digitale-master-2026-08-27-v6-qr-decoder-fix` so installed PWAs receive the corrected `app.js`.

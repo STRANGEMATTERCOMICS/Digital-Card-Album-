@@ -1,4 +1,4 @@
-const CACHE='album-digitale-master-2026-08-27-v4-english-splash';
+const CACHE='album-digitale-master-2026-08-27-v6-qr-decoder-fix';
 const CORE=["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
 const PREVIEWS=Array.from({length:20},(_,i)=>`./previews/${String(i+1).padStart(3,'0')}.webp`);
 const CARDS=Array.from({length:20},(_,i)=>`./cards_enc/${String(i+1).padStart(3,'0')}.card`);
