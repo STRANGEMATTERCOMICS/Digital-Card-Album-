@@ -126,9 +126,11 @@ function scrollGalleryTo(i,behavior='auto'){
 async function openGallery(i){
   galleryIndex=i;
   await buildGallery();
-  updateGalleryMeta(i);
   gallery.showModal();
-  requestAnimationFrame(()=>requestAnimationFrame(()=>scrollGalleryTo(i,'auto')));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    scrollGalleryTo(i,'auto');
+    updateGalleryMeta(i);
+  }));
 }
 
 document.getElementById('closeGallery').addEventListener('click',()=>gallery.close());
@@ -155,34 +157,101 @@ galleryTrack.addEventListener('keydown',e=>{
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function importQr(text){
   if(revealRunning)return;
-  let p;try{p=await verifyAndDecodePayload(text);}catch(e){toast.textContent=e.message;toast.hidden=false;return;}
+
+  let p;
+  try{ p=await verifyAndDecodePayload(text); }
+  catch(e){ toast.textContent=e.message; toast.hidden=false; return; }
+
   const targets=[],already=[];
   for(const item of p.cards){
-    if(isUnlocked(item.id)){already.push(item.id);continue;}
-    targets.push(item.id);revealPending.add(item.id);await protectCardKey(item.id,item.k);
+    if(isUnlocked(item.id)){ already.push(item.id); continue; }
+    targets.push({id:item.id,k:item.k});
+    revealPending.add(item.id);
   }
-  saveState();
+
   if(!targets.length){
-    toast.textContent=p.cards.length===1?'HAI GIÀ QUESTA CARD!':'HAI GIÀ TUTTE LE CARD DI QUESTO PACCHETTO!';
-    toast.hidden=false;await render();return;
-  }
-  revealRunning=true;revealCancelled=false;toast.hidden=true;revealBar.hidden=false;qrDialog.close();
-  ownedCount.textContent=Object.keys(state.protectedKeys).filter(k=>isUnlocked(Number(k))&&!revealPending.has(Number(k))).length;
-  for(const id of targets){
-    if(revealCancelled)break;
+    toast.textContent=p.cards.length===1
+      ?'HAI GIÀ QUESTA CARD!'
+      :'HAI GIÀ TUTTE LE CARD DI QUESTO PACCHETTO!';
+    toast.hidden=false;
     await render();
-    const slot=grid.querySelector(`[data-id="${id}"]`);if(!slot)continue;
-    slot.classList.add('locked');const img=slot.querySelector('.card-image');img.src=cards[id-1].preview;
-    slot.scrollIntoView({behavior:'smooth',block:'center'});revealText.textContent=`RIVELAZIONE #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
-    await wait(650);if(revealCancelled)break;
-    try{img.src=await decryptCard(id);}catch(e){toast.textContent=`ERRORE DECIFRAZIONE #${pad(id)}`;toast.hidden=false;}
-    slot.classList.remove('locked');slot.classList.add('revealing');
-    await wait(900);revealPending.delete(id);if(revealCancelled)break;await wait(450);
+    return;
   }
-  if(revealCancelled){for(const id of targets)revealPending.delete(id);}
-  await render();revealBar.hidden=true;revealRunning=false;
-  const msg=already.length?`${targets.length} NUOVE CARD · ${already.length} GIÀ POSSEDUTE`:`${targets.length} NUOVE CARD SBLOCCATE`;
-  toast.textContent=msg;toast.hidden=false;
+
+  revealRunning=true;
+  revealCancelled=false;
+  toast.hidden=true;
+  revealBar.hidden=false;
+  qrDialog.close();
+
+  /* IMPORTANT:
+     the AES key of a new card is NOT written to persistent storage until
+     that card reaches its own reveal turn. Therefore render() cannot ever
+     see a future card as unlocked. */
+  for(let pos=0;pos<targets.length;pos++){
+    const item=targets[pos], id=item.id;
+    if(revealCancelled)break;
+
+    await render();
+    const slot=grid.querySelector(`[data-id="${id}"]`);
+    if(!slot)continue;
+
+    slot.classList.add('locked');
+    const img=slot.querySelector('.card-image');
+    img.src=cards[id-1].preview;
+
+    slot.scrollIntoView({behavior:'smooth',block:'center'});
+    revealText.textContent=`RIVELAZIONE #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
+
+    await wait(650);
+    if(revealCancelled)break;
+
+    let decrypted=null;
+    try{
+      /* decrypt using the QR key directly; still not persisted */
+      decrypted=await decryptCard(id,item.k);
+    }catch(e){
+      toast.textContent=`ERRORE DECIFRAZIONE #${pad(id)}`;
+      toast.hidden=false;
+    }
+
+    if(decrypted){
+      img.src=decrypted;                 // exact reveal moment
+      slot.classList.remove('locked');
+      slot.classList.add('revealing');
+      await wait(900);
+
+      /* Only now does the card become officially owned. */
+      await protectCardKey(id,item.k);
+      saveState();
+    }
+
+    revealPending.delete(id);
+    await wait(450);
+  }
+
+  if(revealCancelled){
+    /* SALTA means: acquire every remaining card immediately, without
+       briefly showing their full images during the interrupted reveal. */
+    for(const item of targets){
+      if(!isUnlocked(item.id)){
+        await protectCardKey(item.id,item.k);
+      }
+      revealPending.delete(item.id);
+    }
+    saveState();
+  }
+
+  await render();
+  revealBar.hidden=true;
+  revealRunning=false;
+
+  const newCount=targets.length;
+  const msg=already.length
+    ?`${newCount} NUOVE CARD · ${already.length} GIÀ POSSEDUTE`
+    :`${newCount} NUOVE CARD SBLOCCATE`;
+  toast.textContent=msg;
+  toast.hidden=false;
 }
 
 
@@ -190,7 +259,7 @@ function stopScanner(){scannerActive=false;if(scannerTimer){clearTimeout(scanner
 async function scanFrame(){if(!scannerActive||!scannerDetector)return;try{if(scannerVideo.readyState>=2){const codes=await scannerDetector.detect(scannerVideo);if(codes&&codes.length){const raw=(codes[0].rawValue||'').trim();if(raw){scannerStatus.textContent='QR rilevato. Verifica firma…';scannerActive=false;if(scannerStream)scannerStream.getTracks().forEach(t=>t.stop());scannerStream=null;scannerVideo.srcObject=null;scannerDialog.close();await importQr(raw);return;}}}}catch(e){}if(scannerActive)scannerTimer=setTimeout(scanFrame,120);}
 async function startScanner(){toast.hidden=true;if(!window.isSecureContext){toast.textContent='LA FOTOCAMERA RICHIEDE HTTPS';toast.hidden=false;return;}if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast.textContent='FOTOCAMERA NON DISPONIBILE';toast.hidden=false;return;}if(!('BarcodeDetector' in window)){toast.textContent='SCANNER QR NON SUPPORTATO DA QUESTO BROWSER';toast.hidden=false;return;}try{const formats=await BarcodeDetector.getSupportedFormats();if(!formats.includes('qr_code'))throw new Error('QR non supportato');scannerDetector=new BarcodeDetector({formats:['qr_code']});scannerStatus.textContent='Inquadra il QR firmato all’interno del riquadro.';scannerDialog.showModal();scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:1280}},audio:false});scannerVideo.srcObject=scannerStream;await scannerVideo.play();scannerActive=true;scanFrame();}catch(e){stopScanner();const denied=e&&(/NotAllowed|Permission/i.test(e.name||'')||/denied|permission/i.test(e.message||''));toast.textContent=denied?'PERMESSO FOTOCAMERA NEGATO':'IMPOSSIBILE AVVIARE LO SCANNER';toast.hidden=false;}}
 
-document.getElementById('skipReveal').addEventListener('click',async()=>{revealCancelled=true;for(const id of revealPending)revealPending.delete(id);revealBar.hidden=true;revealRunning=false;await render();toast.textContent='CARD SBLOCCATE';toast.hidden=false;});
+document.getElementById('skipReveal').addEventListener('click',()=>{revealCancelled=true;revealText.textContent='COMPLETAMENTO SBLOCCO…';});
 document.getElementById('scanQr').addEventListener('click',startScanner);
 document.getElementById('closeScanner').addEventListener('click',stopScanner);
 scannerDialog.addEventListener('cancel',e=>{e.preventDefault();stopScanner();});
@@ -201,5 +270,12 @@ document.getElementById('qrA').addEventListener('click',()=>importQr(QR_A));
 document.getElementById('qrB').addEventListener('click',()=>importQr(QR_B));
 document.getElementById('qrFake').addEventListener('click',()=>importQr(QR_FAKE));
 document.getElementById('resetDemo').addEventListener('click',async()=>{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(LEGACY_STORAGE_KEY);for(const u of decryptedUrls.values())URL.revokeObjectURL(u);decryptedUrls.clear();cardKeyCache.clear();state.protectedKeys={};state.usedQr=new Set();qrDialog.close();toast.textContent='DEMO AZZERATA';toast.hidden=false;await render();});
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+if('serviceWorker' in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./sw.js?v=20260826-ui3');
+      reg.update().catch(()=>{});
+    }catch(e){}
+  });
+}
 (async()=>{try{loadProtectedState();await migrateLegacyState();await getDeviceWrapKey();await render();}catch(e){toast.textContent='ERRORE ARCHIVIO SICURO LOCALE';toast.hidden=false;console.error(e);}})();
