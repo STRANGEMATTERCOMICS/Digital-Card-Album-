@@ -20,3 +20,10 @@ NON contiene:
 - chiave privata ECDSA
 
 Nota: i file cards_enc presenti sono quelli del set/demo corrente.
+
+AGGIORNAMENTO UI CONSOLIDATO
+- Galleria centrata verticalmente a schermo intero.
+- Fondo adattivo derivato dalla card visualizzata.
+- Corretto reveal anticipato: le card in attesa mostrano solo preview fino al proprio turno.
+- QR reali compatibili con il QR Generator aggiornato.
+- Card già possedute non vengono duplicate.

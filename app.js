@@ -27,6 +27,7 @@ const scannerVideo=document.getElementById('scannerVideo');
 const scannerStatus=document.getElementById('scannerStatus');
 let scannerStream=null,scannerActive=false,scannerDetector=null,scannerTimer=null;
 let galleryIndex=0,revealCancelled=false,revealRunning=false,galleryScrollTimer=null;
+const revealPending=new Set();
 
 function bytesToB64u(bytes){let raw='';for(const b of bytes)raw+=String.fromCharCode(b);return btoa(raw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function b64uToBytes(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const raw=atob(s);return Uint8Array.from(raw,c=>c.charCodeAt(0));}
@@ -63,14 +64,14 @@ async function migrateLegacyState(){
   if(legacy.keys&&typeof legacy.keys==='object'){for(const [id,keyText] of Object.entries(legacy.keys)){if(typeof keyText==='string'&&keyText.length>20&&!isUnlocked(Number(id)))await protectCardKey(Number(id),keyText);}}
   saveState();localStorage.removeItem(LEGACY_STORAGE_KEY);
 }
-async function verifyAndDecodePayload(text){if(typeof text!=='string'||!text.startsWith('AD1.'))throw new Error('QR non riconosciuto');const parts=text.split('.');if(parts.length!==3||!parts[1]||!parts[2])throw new Error('QR non firmato o formato non valido');const payloadBytes=b64uToBytes(parts[1]);const signature=b64uToBytes(parts[2]);if(signature.length!==64)throw new Error('Firma QR non valida');const publicKey=await crypto.subtle.importKey('jwk',QR_PUBLIC_JWK,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);const authentic=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},publicKey,signature,payloadBytes);if(!authentic)throw new Error('QR NON AUTENTICO');let p;try{p=JSON.parse(new TextDecoder().decode(payloadBytes));}catch(e){throw new Error('Payload QR non valido');}if(p.v!==1||typeof p.pack!=='string'||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Payload QR non valido');for(const item of p.cards){if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string')throw new Error('Card QR non valida');}return p;}
+async function verifyAndDecodePayload(text){if(typeof text!=='string'||!text.startsWith('AD1.'))throw new Error('QR non riconosciuto');const parts=text.split('.');if(parts.length!==3||!parts[1]||!parts[2])throw new Error('QR non firmato o formato non valido');const payloadBytes=b64uToBytes(parts[1]);const signature=b64uToBytes(parts[2]);if(signature.length!==64)throw new Error('Firma QR non valida');const publicKey=await crypto.subtle.importKey('jwk',QR_PUBLIC_JWK,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);const authentic=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},publicKey,signature,payloadBytes);if(!authentic)throw new Error('QR NON AUTENTICO');let p;try{p=JSON.parse(new TextDecoder().decode(payloadBytes));}catch(e){throw new Error('Payload QR non valido');}if(p.v!==1||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Payload QR non valido');for(const item of p.cards){if(typeof item.k!=='string'&&typeof item.key==='string')item.k=item.key;if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string')throw new Error('Card QR non valida');}return p;}
 async function decryptCard(id,keyText=null){if(decryptedUrls.has(id))return decryptedUrls.get(id);if(!keyText)keyText=await getCardKey(id);const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc)).arrayBuffer());if(packed.length<29)throw new Error('File cifrato non valido');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,url);return url;}
-async function imageFor(c){if(!isUnlocked(c.id))return c.preview;try{return await decryptCard(c.id);}catch(e){return c.preview;}}
+async function imageFor(c){if(!isUnlocked(c.id)||revealPending.has(c.id))return c.preview;try{return await decryptCard(c.id);}catch(e){return c.preview;}}
 
 async function render(){
   grid.innerHTML='';
   for(let i=0;i<cards.length;i++){
-    const c=cards[i],unlocked=isUnlocked(c.id);
+    const c=cards[i],unlocked=isUnlocked(c.id)&&!revealPending.has(c.id);
     const slot=document.createElement('article');slot.className='slot'+(unlocked?'':' locked');slot.dataset.id=c.id;
     const btn=document.createElement('button');btn.type='button';btn.className='card-button';btn.disabled=!unlocked;btn.setAttribute('aria-label',`Card ${pad(c.id)}${c.type?' '+c.type:''}${unlocked?'':' non sbloccata'}`);
     const src=await imageFor(c);
@@ -83,18 +84,37 @@ async function render(){
 async function buildGallery(){
   galleryTrack.innerHTML='';
   for(let i=0;i<cards.length;i++){
-    const c=cards[i],locked=!isUnlocked(c.id),src=await imageFor(c);
+    const c=cards[i],locked=!isUnlocked(c.id)||revealPending.has(c.id),src=await imageFor(c);
     const slide=document.createElement('article');slide.className='gallery-slide';slide.dataset.index=String(i);
     slide.innerHTML=`<div class="gallery-card${locked?' locked':''}"><img class="card-image" src="${src}" alt="Card ${pad(c.id)}"><div class="shade"></div></div>`;
     galleryTrack.appendChild(slide);
   }
 }
 
+async function updateGalleryBackground(i){
+  const slide=galleryTrack.children[i]; if(!slide)return;
+  const img=slide.querySelector('img'); if(!img)return;
+  try{
+    if(!img.complete)await new Promise((res,rej)=>{img.addEventListener('load',res,{once:true});img.addEventListener('error',rej,{once:true});});
+    const c=document.createElement('canvas'); c.width=24;c.height=36;
+    const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,c.width,c.height);
+    const d=ctx.getImageData(0,0,c.width,c.height).data;
+    let r=0,g=0,b=0,n=0;
+    for(let p=0;p<d.length;p+=16){if(d[p+3]<100)continue;r+=d[p];g+=d[p+1];b+=d[p+2];n++;}
+    if(!n)return; r/=n;g/=n;b/=n;
+    const lum=.2126*r+.7152*g+.0722*b;
+    const factor=lum>145?.24:.34;
+    const rr=Math.max(7,Math.round(r*factor)),gg=Math.max(8,Math.round(g*factor)),bb=Math.max(9,Math.round(b*factor));
+    gallery.style.setProperty('--gallery-bg',`rgb(${rr} ${gg} ${bb})`);
+  }catch(e){gallery.style.setProperty('--gallery-bg','#090b0d');}
+}
+
 function updateGalleryMeta(i){
   galleryIndex=Math.max(0,Math.min(cards.length-1,i));
-  const c=cards[galleryIndex],locked=!isUnlocked(c.id);
+  const c=cards[galleryIndex],locked=!isUnlocked(c.id)||revealPending.has(c.id);
   galleryPosition.textContent=`${galleryIndex+1} / ${cards.length}`;
   galleryMeta.textContent=`#${pad(c.id)}${c.type?'  '+c.type:''}${locked?'  ·  NON SBLOCCATA':''}`;
+  updateGalleryBackground(galleryIndex);
 }
 
 function scrollGalleryTo(i,behavior='auto'){
@@ -136,22 +156,33 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function importQr(text){
   if(revealRunning)return;
   let p;try{p=await verifyAndDecodePayload(text);}catch(e){toast.textContent=e.message;toast.hidden=false;return;}
-  if(state.usedQr.has(p.pack)){toast.textContent='QR GIÀ USATO SU QUESTO DISPOSITIVO';toast.hidden=false;return;}
-  const targets=[];
-  for(const item of p.cards){if(!isUnlocked(item.id))targets.push(item.id);await protectCardKey(item.id,item.k);}
-  state.usedQr.add(p.pack);saveState();
-  if(!targets.length){toast.textContent='NESSUNA NUOVA CARD';toast.hidden=false;await render();return;}
-  revealRunning=true;revealCancelled=false;toast.hidden=true;revealBar.hidden=false;qrDialog.close();ownedCount.textContent=Object.keys(state.protectedKeys).filter(k=>isUnlocked(Number(k))).length;
+  const targets=[],already=[];
+  for(const item of p.cards){
+    if(isUnlocked(item.id)){already.push(item.id);continue;}
+    targets.push(item.id);revealPending.add(item.id);await protectCardKey(item.id,item.k);
+  }
+  saveState();
+  if(!targets.length){
+    toast.textContent=p.cards.length===1?'HAI GIÀ QUESTA CARD!':'HAI GIÀ TUTTE LE CARD DI QUESTO PACCHETTO!';
+    toast.hidden=false;await render();return;
+  }
+  revealRunning=true;revealCancelled=false;toast.hidden=true;revealBar.hidden=false;qrDialog.close();
+  ownedCount.textContent=Object.keys(state.protectedKeys).filter(k=>isUnlocked(Number(k))&&!revealPending.has(Number(k))).length;
   for(const id of targets){
     if(revealCancelled)break;
     await render();
     const slot=grid.querySelector(`[data-id="${id}"]`);if(!slot)continue;
-    slot.classList.add('locked');const img=slot.querySelector('.card-image');img.src=cards[id-1].preview;slot.scrollIntoView({behavior:'smooth',block:'center'});revealText.textContent=`RIVELAZIONE #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
-    await wait(600);if(revealCancelled)break;
+    slot.classList.add('locked');const img=slot.querySelector('.card-image');img.src=cards[id-1].preview;
+    slot.scrollIntoView({behavior:'smooth',block:'center'});revealText.textContent=`RIVELAZIONE #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
+    await wait(650);if(revealCancelled)break;
     try{img.src=await decryptCard(id);}catch(e){toast.textContent=`ERRORE DECIFRAZIONE #${pad(id)}`;toast.hidden=false;}
-    slot.classList.remove('locked');slot.classList.add('revealing');await wait(800);if(revealCancelled)break;await wait(600);
+    slot.classList.remove('locked');slot.classList.add('revealing');
+    await wait(900);revealPending.delete(id);if(revealCancelled)break;await wait(450);
   }
-  await render();revealBar.hidden=true;revealRunning=false;toast.textContent=`${targets.length} NUOVE CARD SBLOCCATE`;toast.hidden=false;
+  if(revealCancelled){for(const id of targets)revealPending.delete(id);}
+  await render();revealBar.hidden=true;revealRunning=false;
+  const msg=already.length?`${targets.length} NUOVE CARD · ${already.length} GIÀ POSSEDUTE`:`${targets.length} NUOVE CARD SBLOCCATE`;
+  toast.textContent=msg;toast.hidden=false;
 }
 
 
@@ -159,7 +190,7 @@ function stopScanner(){scannerActive=false;if(scannerTimer){clearTimeout(scanner
 async function scanFrame(){if(!scannerActive||!scannerDetector)return;try{if(scannerVideo.readyState>=2){const codes=await scannerDetector.detect(scannerVideo);if(codes&&codes.length){const raw=(codes[0].rawValue||'').trim();if(raw){scannerStatus.textContent='QR rilevato. Verifica firma…';scannerActive=false;if(scannerStream)scannerStream.getTracks().forEach(t=>t.stop());scannerStream=null;scannerVideo.srcObject=null;scannerDialog.close();await importQr(raw);return;}}}}catch(e){}if(scannerActive)scannerTimer=setTimeout(scanFrame,120);}
 async function startScanner(){toast.hidden=true;if(!window.isSecureContext){toast.textContent='LA FOTOCAMERA RICHIEDE HTTPS';toast.hidden=false;return;}if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast.textContent='FOTOCAMERA NON DISPONIBILE';toast.hidden=false;return;}if(!('BarcodeDetector' in window)){toast.textContent='SCANNER QR NON SUPPORTATO DA QUESTO BROWSER';toast.hidden=false;return;}try{const formats=await BarcodeDetector.getSupportedFormats();if(!formats.includes('qr_code'))throw new Error('QR non supportato');scannerDetector=new BarcodeDetector({formats:['qr_code']});scannerStatus.textContent='Inquadra il QR firmato all’interno del riquadro.';scannerDialog.showModal();scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:1280}},audio:false});scannerVideo.srcObject=scannerStream;await scannerVideo.play();scannerActive=true;scanFrame();}catch(e){stopScanner();const denied=e&&(/NotAllowed|Permission/i.test(e.name||'')||/denied|permission/i.test(e.message||''));toast.textContent=denied?'PERMESSO FOTOCAMERA NEGATO':'IMPOSSIBILE AVVIARE LO SCANNER';toast.hidden=false;}}
 
-document.getElementById('skipReveal').addEventListener('click',async()=>{revealCancelled=true;revealBar.hidden=true;revealRunning=false;await render();toast.textContent='CARD SBLOCCATE';toast.hidden=false;});
+document.getElementById('skipReveal').addEventListener('click',async()=>{revealCancelled=true;for(const id of revealPending)revealPending.delete(id);revealBar.hidden=true;revealRunning=false;await render();toast.textContent='CARD SBLOCCATE';toast.hidden=false;});
 document.getElementById('scanQr').addEventListener('click',startScanner);
 document.getElementById('closeScanner').addEventListener('click',stopScanner);
 scannerDialog.addEventListener('cancel',e=>{e.preventDefault();stopScanner();});
