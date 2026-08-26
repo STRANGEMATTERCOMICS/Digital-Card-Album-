@@ -273,7 +273,7 @@ document.getElementById('resetDemo').addEventListener('click',async()=>{localSto
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
-      const reg=await navigator.serviceWorker.register('./sw.js?v=20260826-ui3');
+      const reg=await navigator.serviceWorker.register('./sw.js?v=20260826-ui4');
       reg.update().catch(()=>{});
     }catch(e){}
   });
