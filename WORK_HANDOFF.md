@@ -1,58 +1,68 @@
-# ALBUM DIGITALE — HANDOFF PER WORK
+# ALBUM DIGITALE — MASTER DI PROGETTO
 
-## Stato corrente
-- Splash screen ripristinata: overlay full-screen a ogni avvio, durata 2 s + fade-out. Usa `splash.png` se presente nella root; fallback automatico a `icons/icon-512.png`.
-- Cache PWA aggiornata a `album-digitale-encrypted-v2-splash` per forzare il refresh dei file applicativi.
-Prototipo PWA mobile-first funzionante, già verificato su telefono tramite GitHub Pages e installabile come PWA.
+**Master:** 2026-08-26 v1  
+**Regola:** da questa build in avanti NON usare più i vecchi ZIP `WORK_TRANSFER`, `SPLASH_FIXED` o `SPLASH_GALLERY_FIXED` come base. Ogni modifica futura deve partire da questo MASTER.
 
-## Regole UI fissate
-- 20 slot nel prototipo.
-- Album con scroll verticale.
-- 2 slot affiancati per riga.
-- Numerazione unica progressiva #001–#020.
-- Variant e Special sono mescolate nella sequenza normale.
-- Simbolo Variant: `V`.
-- Simbolo Special: `◆` provvisorio.
-- Slot bloccati mostrano preview irreversibilmente degradata/offuscata.
-- Tap su card sbloccata apre gallery.
-- Gallery comprende anche card bloccate.
-- Gallery: card molto grandi (94–96% larghezza su smartphone), swipe orizzontale, scroll-snap, nessuna freccia visibile, X per uscire.
-- Reveal QR: scorrimento automatico verso ogni slot, reveal in sequenza, massimo 5 card, pulsante SALTA.
+## Stato consolidato
+- PWA mobile-first per GitHub Pages / Patreon.
+- 20 slot prototipo, 2 card per riga, scroll verticale.
+- Numerazione #001–#020.
+- Variant `V`, Special `◆` provvisorio.
+- Card complete cifrate AES-256-GCM in `cards_enc/`.
+- Preview degradate WebP in `previews/`.
+- Sblocco e chiavi salvati localmente per uso offline.
+- Reveal sequenziale fino a 5 card con pulsante SALTA.
+- Gallery full-screen, swipe orizzontale, snap, X, card centrata in altezza.
+- Fondo gallery adattivo al contenuto della card.
+- Orientamento impostato portrait nel manifest + tentativo Screen Orientation API.
 
-## Cifratura
-- Card complete cifrate singolarmente con AES-256-GCM.
-- File cifrati in `cards_enc/`.
-- Preview degradate in `previews/`.
-- Le card complete vengono decifrate in memoria solo dopo sblocco.
-- Le chiavi delle card sono salvate localmente nel browser/PWA.
-- Nessun database esterno.
+## QR — produzione
+- **RIMOSSI definitivamente:** pulsante `TEST QR`, dialog test, QR A/B incorporati, RESET DEMO.
+- L'app conserva il decoder del payload `AD1.` e il meccanismo reale di sblocco.
+- Ingresso QR supportato dal MASTER tramite URL:
+  - `?qr=AD1....`
+  - `#qr=AD1....`
+  - `#AD1....`
+- Dopo aver letto il payload, l'URL viene ripulito con `history.replaceState`.
+- I QR già usati sul dispositivo restano registrati in localStorage.
+- Nota sicurezza: questa build recuperata usa ancora il formato AD1 con ID+chiavi. La firma crittografica del QR NON era presente nei file di base recuperati; non viene dichiarata come implementata finché non viene reintegrata con chiave pubblica verificabile.
 
-## QR — stato
-La demo contiene due QR simulati. Il sistema definitivo da costruire in Work deve:
-1. leggere QR reali dalla fotocamera;
-2. accettare 1–5 card per QR;
-3. contenere ID e materiale di decifratura;
-4. verificare autenticità/firma del QR;
-5. registrare localmente i QR già usati sul dispositivo;
-6. ignorare eventuali card già sbloccate.
+## Splash
+- `splash.png` va nella ROOT, allo stesso livello di `index.html`.
+- Splash custom visibile a ogni avvio per 2 s + fade.
+- Immagine realmente edge-to-edge: `width:100%`, `height:100%`, `object-fit:cover`, nessun padding.
+- `splash.png` è precaricata.
+- **Rimosso il fallback all'icona**: se `splash.png` manca, si vede solo il fondo scuro, mai `icon-512.png` come splash HTML.
+- Limite PWA: Android/Chrome può mostrare una schermata nativa con icona PRIMA dell'HTML. Non è eliminabile dal codice della pagina. Il manifest usa `display: fullscreen` e colori coerenti per minimizzare il passaggio.
 
-## Generatore QR da costruire
-Modulo separato dall'Album.
-- Generazione automatica casuale.
-- Nessun doppione all'interno della stessa tiratura base.
-- Esempio: 20 card / 4 QR = copertura completa delle 20 card, 5 per QR.
-- Variant gestibili con QR dedicati.
-- Special gestibili con QR dedicati/distribuzione Patreon a tempo o limitata.
-- Firma con chiave privata nel generatore; PWA contiene solo chiave pubblica.
+## Gallery
+- Dialog forzato a `100vw × 100dvh`, evitando il bug della “linea”.
+- Track centrale con altezza definita, card centrata verticalmente.
+- Swipe orizzontale + `scroll-snap`.
+- Card gallery con rapporto 2:3 e `object-fit: contain` per non tagliare l'immagine.
+- Fondo gallery adattivo calcolato dalla card corrente con transizione morbida.
 
-## Distribuzione
-- PWA ospitata su GitHub Pages via HTTPS.
-- Link distribuibile tramite Patreon.
-- QR pubblicabili nei post Patreon.
+## Cache / preview
+- Service Worker: `album-digitale-master-2026-08-26-v1`.
+- HTML/CSS/JS/manifest/preview WebP: strategia network-first/no-store, con fallback cache offline.
+- `.card`: cache-first dopo pre-cache.
+- Registrazione SW con `updateViaCache:'none'` e reload singolo su nuovo controller.
+- Obiettivo: impedire il ritorno delle vecchie preview WebP dopo aggiornamenti GitHub.
 
-## Prossimi lavori
-1. Scanner QR reale.
-2. Generatore QR automatico e firmato.
-3. Struttura di import semplice per sostituire le 20 card demo con immagini reali.
-4. Pulizia grafica finale e simbolo Special definitivo.
-5. Versioning PWA/service worker per aggiornamenti affidabili.
+## File principali
+- `index.html` — struttura UI.
+- `style.css` — album, splash, gallery.
+- `app.js` — cifratura, stato, reveal, gallery, QR da URL, adaptive background.
+- `sw.js` — cache/versioning.
+- `manifest.webmanifest` — PWA fullscreen + portrait.
+- `splash.png` — grafica splash da aggiungere in root (non inclusa nel MASTER se non fornita).
+- `previews/` — 001.webp…020.webp.
+- `cards_enc/` — 001.card…020.card.
+
+## Regole per modifiche future
+1. Partire sempre dal MASTER più recente.
+2. Aggiornare `WORK_HANDOFF.md` nella stessa build.
+3. Cambiare sempre il nome CACHE nel service worker per una release pubblicata.
+4. Non reintrodurre strumenti demo/test nell'interfaccia pubblica.
+5. Non inserire chiavi private o generatori QR nell'app pubblicata.
+6. Prima di consegnare: controllare sintassi JS, riferimenti file, presenza di stringhe `TEST QR`, `QR A`, `QR B`, `RESET DEMO` e regressioni gallery/splash.

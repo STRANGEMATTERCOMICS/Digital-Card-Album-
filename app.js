@@ -1,4 +1,6 @@
 const splashScreen=document.getElementById('splashScreen');
+const splashImage=document.getElementById('splashImage');
+if(splashImage){splashImage.addEventListener('error',()=>splashImage.classList.add('is-missing'),{once:true});}
 function dismissSplash(){
   if(!splashScreen)return;
   splashScreen.classList.add('is-hiding');
@@ -7,10 +9,12 @@ function dismissSplash(){
 }
 window.setTimeout(dismissSplash,2000);
 
+/* Blocca il portrait quando l'API è disponibile. Il manifest imposta comunque orientation: portrait. */
+async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
+window.addEventListener('load',lockPortrait,{once:true});
+
 const TYPE_MAP={3:'V',7:'◆',11:'V',14:'◆',18:'V'};
 const STORAGE_KEY='album-digitale-encrypted-v1';
-const QR_A="AD1.eyJ2IjoxLCJwYWNrIjoiREVNTy1RUi0wMDEiLCJjYXJkcyI6W3siaWQiOjQsImsiOiJPQS15SWItOFI1c3lGRlJSVllJT1Nua0RQX08wTGZIOUp4bkhEbW8xaDZzIn0seyJpZCI6NywiayI6ImlnYWl0bEx4Y0FaUFVEbWw1T1I0TzN5MTRZVjNHWV9DdF9IWkxEejVJUjAifSx7ImlkIjoxMSwiayI6ImllUlNXN0FQbExuMUxWTjAzNEtmTklqLTh4bnJOeWlhdXlzVDNVZUgzN28ifSx7ImlkIjoxNCwiayI6IjJSeG5pTXN6M01xWEVQZlcwRnotM3lhNF96b25xR2xBRV9Wbnl6eEpfNFkifSx7ImlkIjoxOCwiayI6IjFiQVJnWk1wZ3Y3NDBTc2tyQkVSMDNJd2I5WDhmcVRKMzEzUC1BSDdtWHcifV19";
-const QR_B="AD1.eyJ2IjoxLCJwYWNrIjoiREVNTy1RUi0wMDIiLCJjYXJkcyI6W3siaWQiOjEsImsiOiJfYzNTVzFmS0NjZEluV1ZfVkdUTmNuTDdFTmY1VjVoa0ctc3JwLU1Kd0dJIn0seyJpZCI6MiwiayI6Imx2YWpCVy1makdncDBfMm9sOFlJUVJpQ1phRElUSkhZdEJhVDYzdWFqLUkifSx7ImlkIjo1LCJrIjoiSG5qVDVlOV9Dc0tKLUJMeURFS0ZQU0V4cGxSa1lFT0FER0xfdjVxLU5rdyJ9LHsiaWQiOjksImsiOiIwdFlnVHhaWEx1RWtONXhLeTlDcE02Y2tySTh1UF8tM1ZoTi1EQzlUMWE0In0seyJpZCI6MTMsImsiOiJfRU9ZbjVFNWZ6UUJnUXBfZ1BWQTVhQU03X2sybi04YkRpRGFtNUVENnJFIn1dfQ";
 const cards=Array.from({length:20},(_,i)=>({id:i+1,type:TYPE_MAP[i+1]||'',enc:`cards_enc/${String(i+1).padStart(3,'0')}.card`,preview:`previews/${String(i+1).padStart(3,'0')}.webp`}));
 const state=loadState();
 const decryptedUrls=new Map();
@@ -23,7 +27,6 @@ const galleryPosition=document.getElementById('galleryPosition');
 const revealBar=document.getElementById('revealBar');
 const revealText=document.getElementById('revealText');
 const toast=document.getElementById('toast');
-const qrDialog=document.getElementById('qrDialog');
 let galleryIndex=0,revealCancelled=false,revealRunning=false,galleryScrollTimer=null;
 
 function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const p=JSON.parse(raw);return {keys:p.keys||{},usedQr:new Set(p.usedQr||[])};}}catch(e){}return {keys:{},usedQr:new Set()};}
@@ -32,7 +35,7 @@ function pad(n){return String(n).padStart(3,'0')}
 function isUnlocked(id){return typeof state.keys[id]==='string'&&state.keys[id].length>20}
 function b64uToBytes(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const raw=atob(s);return Uint8Array.from(raw,c=>c.charCodeAt(0));}
 function decodePayload(text){if(typeof text!=='string'||!text.startsWith('AD1.'))throw new Error('QR non riconosciuto');const raw=new TextDecoder().decode(b64uToBytes(text.slice(4)));const p=JSON.parse(raw);if(p.v!==1||typeof p.pack!=='string'||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Payload QR non valido');for(const item of p.cards){if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string')throw new Error('Card QR non valida');}return p;}
-async function decryptCard(id,keyText){if(decryptedUrls.has(id))return decryptedUrls.get(id);const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc)).arrayBuffer());if(packed.length<29)throw new Error('File cifrato non valido');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,url);return url;}
+async function decryptCard(id,keyText){if(decryptedUrls.has(id))return decryptedUrls.get(id);const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('File cifrato non valido');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,url);return url;}
 async function imageFor(c){if(!isUnlocked(c.id))return c.preview;try{return await decryptCard(c.id,state.keys[c.id]);}catch(e){return c.preview;}}
 
 async function render(){
@@ -58,11 +61,33 @@ async function buildGallery(){
   }
 }
 
+function clampByte(n){return Math.max(0,Math.min(255,Math.round(n)))}
+function adaptiveColorFromImage(img){
+  try{
+    const canvas=document.createElement('canvas');canvas.width=18;canvas.height=27;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    let r=0,g=0,b=0,n=0;
+    for(let i=0;i<data.length;i+=16){if(data[i+3]<80)continue;r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
+    if(!n)return '#090b0d';r/=n;g/=n;b/=n;
+    const lum=.2126*r+.7152*g+.0722*b;
+    const scale=lum>0?Math.min(.34,42/lum):.22;
+    return `rgb(${clampByte(r*scale)},${clampByte(g*scale)},${clampByte(b*scale)})`;
+  }catch(e){return '#090b0d';}
+}
+function updateAdaptiveGallery(i){
+  const img=galleryTrack.children[i]?.querySelector('img');
+  if(!img){gallery.style.setProperty('--gallery-bg','#090b0d');return;}
+  const apply=()=>gallery.style.setProperty('--gallery-bg',adaptiveColorFromImage(img));
+  if(img.complete&&img.naturalWidth)apply();else img.addEventListener('load',apply,{once:true});
+}
+
 function updateGalleryMeta(i){
   galleryIndex=Math.max(0,Math.min(cards.length-1,i));
   const c=cards[galleryIndex],locked=!isUnlocked(c.id);
   galleryPosition.textContent=`${galleryIndex+1} / ${cards.length}`;
   galleryMeta.textContent=`#${pad(c.id)}${c.type?'  '+c.type:''}${locked?'  ·  NON SBLOCCATA':''}`;
+  updateAdaptiveGallery(galleryIndex);
 }
 
 function scrollGalleryTo(i,behavior='auto'){
@@ -72,10 +97,7 @@ function scrollGalleryTo(i,behavior='auto'){
 }
 
 async function openGallery(i){
-  galleryIndex=i;
-  await buildGallery();
-  updateGalleryMeta(i);
-  gallery.showModal();
+  galleryIndex=i;await buildGallery();updateGalleryMeta(i);gallery.showModal();
   requestAnimationFrame(()=>requestAnimationFrame(()=>scrollGalleryTo(i,'auto')));
 }
 
@@ -86,11 +108,7 @@ galleryTrack.addEventListener('scroll',()=>{
   galleryScrollTimer=setTimeout(()=>{
     const center=galleryTrack.scrollLeft+galleryTrack.clientWidth/2;
     let best=0,bestDist=Infinity;
-    Array.from(galleryTrack.children).forEach((slide,i)=>{
-      const slideCenter=slide.offsetLeft+slide.offsetWidth/2;
-      const d=Math.abs(slideCenter-center);
-      if(d<bestDist){bestDist=d;best=i;}
-    });
+    Array.from(galleryTrack.children).forEach((slide,i)=>{const slideCenter=slide.offsetLeft+slide.offsetWidth/2;const d=Math.abs(slideCenter-center);if(d<bestDist){bestDist=d;best=i;}});
     updateGalleryMeta(best);
   },70);
 },{passive:true});
@@ -109,11 +127,10 @@ async function importQr(text){
   for(const item of p.cards){if(!isUnlocked(item.id))targets.push(item.id);state.keys[item.id]=item.k;}
   state.usedQr.add(p.pack);saveState();
   if(!targets.length){toast.textContent='NESSUNA NUOVA CARD';toast.hidden=false;await render();return;}
-  revealRunning=true;revealCancelled=false;toast.hidden=true;revealBar.hidden=false;qrDialog.close();ownedCount.textContent=Object.keys(state.keys).filter(k=>isUnlocked(Number(k))).length;
+  revealRunning=true;revealCancelled=false;toast.hidden=true;revealBar.hidden=false;ownedCount.textContent=Object.keys(state.keys).filter(k=>isUnlocked(Number(k))).length;
   for(const id of targets){
     if(revealCancelled)break;
-    await render();
-    const slot=grid.querySelector(`[data-id="${id}"]`);if(!slot)continue;
+    await render();const slot=grid.querySelector(`[data-id="${id}"]`);if(!slot)continue;
     slot.classList.add('locked');const img=slot.querySelector('.card-image');img.src=cards[id-1].preview;slot.scrollIntoView({behavior:'smooth',block:'center'});revealText.textContent=`RIVELAZIONE #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
     await wait(600);if(revealCancelled)break;
     try{img.src=await decryptCard(id,state.keys[id]);}catch(e){toast.textContent=`ERRORE DECIFRAZIONE #${pad(id)}`;toast.hidden=false;}
@@ -123,10 +140,29 @@ async function importQr(text){
 }
 
 document.getElementById('skipReveal').addEventListener('click',async()=>{revealCancelled=true;revealBar.hidden=true;revealRunning=false;await render();toast.textContent='CARD SBLOCCATE';toast.hidden=false;});
-document.getElementById('testQr').addEventListener('click',()=>qrDialog.showModal());
-document.getElementById('closeQr').addEventListener('click',()=>qrDialog.close());
-document.getElementById('qrA').addEventListener('click',()=>importQr(QR_A));
-document.getElementById('qrB').addEventListener('click',()=>importQr(QR_B));
-document.getElementById('resetDemo').addEventListener('click',async()=>{localStorage.removeItem(STORAGE_KEY);for(const u of decryptedUrls.values())URL.revokeObjectURL(u);decryptedUrls.clear();state.keys={};state.usedQr=new Set();qrDialog.close();toast.textContent='DEMO AZZERATA';toast.hidden=false;await render();});
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
-render();
+
+/* Ingresso QR di produzione: il QR può aprire la PWA con ?qr=AD1... oppure #qr=AD1... / #AD1... . Nessun QR demo è incorporato. */
+function qrFromLocation(){
+  const qs=new URLSearchParams(location.search);const q=qs.get('qr');if(q)return q;
+  const h=location.hash.replace(/^#/,'');if(!h)return null;
+  if(h.startsWith('qr='))return decodeURIComponent(h.slice(3));
+  if(h.startsWith('AD1.'))return decodeURIComponent(h);
+  return null;
+}
+async function consumeQrFromLocation(){
+  const q=qrFromLocation();if(!q)return;
+  try{history.replaceState(null,'',location.pathname); }catch(e){}
+  await importQr(q);
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update();
+      let refreshed=sessionStorage.getItem('album-sw-refreshed')==='1';
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!refreshed){refreshed=true;sessionStorage.setItem('album-sw-refreshed','1');location.reload();}});
+    }catch(e){}
+  });
+}
+
+render().then(consumeQrFromLocation);

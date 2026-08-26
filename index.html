@@ -4,28 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" as="image" href="splash.png">
   <link rel="stylesheet" href="style.css">
   <title>Album Digitale</title>
 </head>
 <body class="splash-active">
   <div id="splashScreen" class="splash-screen" role="presentation" aria-hidden="true">
-    <img id="splashImage" class="splash-image" src="splash.png" alt="" onerror="this.onerror=null;this.src='icons/icon-512.png'">
+    <img id="splashImage" class="splash-image" src="splash.png" alt="">
   </div>
+
   <header class="topbar">
-    <div><div class="eyebrow">ALBUM DIGITALE · CIFRATO</div><div class="progress"><strong id="ownedCount">0</strong> / 20 SBLOCCATE</div></div>
-    <button id="testQr" type="button">TEST QR</button>
+    <div>
+      <div class="eyebrow">ALBUM DIGITALE · CIFRATO</div>
+      <div class="progress"><strong id="ownedCount">0</strong> / 20 SBLOCCATE</div>
+    </div>
   </header>
 
   <main id="albumGrid" class="album-grid" aria-label="Album di 20 card"></main>
-
-  <dialog id="qrDialog">
-    <div class="dialog-head"><strong>QR DI TEST</strong><button id="closeQr" type="button" aria-label="Chiudi">×</button></div>
-    <p>Questi pulsanti simulano QR che contengono ID e chiavi delle card.</p>
-    <button class="qr-sim" id="qrA" type="button">QR A · 5 CARD</button>
-    <button class="qr-sim" id="qrB" type="button">QR B · 5 CARD</button>
-    <button id="resetDemo" class="secondary" type="button">RESET DEMO</button>
-  </dialog>
 
   <dialog id="gallery" aria-label="Galleria card">
     <div class="gallery-head">
@@ -37,7 +35,10 @@
     <div id="galleryMeta" class="gallery-meta"></div>
   </dialog>
 
-  <div id="revealBar" class="reveal-bar" hidden><span id="revealText">SBLOCCO IN CORSO</span><button id="skipReveal" type="button">SALTA</button></div>
+  <div id="revealBar" class="reveal-bar" hidden>
+    <span id="revealText">SBLOCCO IN CORSO</span>
+    <button id="skipReveal" type="button">SALTA</button>
+  </div>
   <div id="toast" class="toast" hidden></div>
   <script src="app.js"></script>
 </body>
