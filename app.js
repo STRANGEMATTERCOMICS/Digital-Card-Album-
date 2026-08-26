@@ -4,11 +4,8 @@ const LEGACY_STORAGE_KEY='album-digitale-encrypted-v1';
 const KEY_DB='album-digitale-secure-store';
 const KEY_STORE='crypto';
 const DEVICE_KEY_ID='device-wrap-key-v1';
-const QR_A="AD1.eyJ2IjoxLCJwYWNrIjoiREVNTy1RUi0wMDEiLCJjYXJkcyI6W3siaWQiOjQsImsiOiJPQS15SWItOFI1c3lGRlJSVllJT1Nua0RQX08wTGZIOUp4bkhEbW8xaDZzIn0seyJpZCI6NywiayI6ImlnYWl0bEx4Y0FaUFVEbWw1T1I0TzN5MTRZVjNHWV9DdF9IWkxEejVJUjAifSx7ImlkIjoxMSwiayI6ImllUlNXN0FQbExuMUxWTjAzNEtmTklqLTh4bnJOeWlhdXlzVDNVZUgzN28ifSx7ImlkIjoxNCwiayI6IjJSeG5pTXN6M01xWEVQZlcwRnotM3lhNF96b25xR2xBRV9Wbnl6eEpfNFkifSx7ImlkIjoxOCwiayI6IjFiQVJnWk1wZ3Y3NDBTc2tyQkVSMDNJd2I5WDhmcVRKMzEzUC1BSDdtWHcifV19.-xYtxUG6RKBjxBdZmutJukYlB5Tb_C1af-b6Qitooq32XkfMKr38R9w4li4hYd4AhwvmtYNHY4WSFngicAe87w";
-const QR_B="AD1.eyJ2IjoxLCJwYWNrIjoiREVNTy1RUi0wMDIiLCJjYXJkcyI6W3siaWQiOjEsImsiOiJfYzNTVzFmS0NjZEluV1ZfVkdUTmNuTDdFTmY1VjVoa0ctc3JwLU1Kd0dJIn0seyJpZCI6MiwiayI6Imx2YWpCVy1makdncDBfMm9sOFlJUVJpQ1phRElUSkhZdEJhVDYzdWFqLUkifSx7ImlkIjo1LCJrIjoiSG5qVDVlOV9Dc0tKLUJMeURFS0ZQU0V4cGxSa1lFT0FER0xfdjVxLU5rdyJ9LHsiaWQiOjksImsiOiIwdFlnVHhaWEx1RWtONXhLeTlDcE02Y2tySTh1UF8tM1ZoTi1EQzlUMWE0In0seyJpZCI6MTMsImsiOiJfRU9ZbjVFNWZ6UUJnUXBfZ1BWQTVhQU03X2sybi04YkRpRGFtNUVENnJFIn1dfQ.4hcPOGtMrd9m-xfgX9q3ADT8y3QEH3dpvA8MDHUj4_1K7qFD1_WM1R0hCUsWChS1mAMNvHilmE6UpFslEuYYSw";
-const QR_FAKE="AD1.eyJ2IjoxLCJwYWNrIjoiRkFLRS1RUi05OTkiLCJjYXJkcyI6W3siaWQiOjQsImsiOiJPQS15SWItOFI1c3lGRlJSVllJT1Nua0RQX08wTGZIOUp4bkhEbW8xaDZzIn0seyJpZCI6NywiayI6ImlnYWl0bEx4Y0FaUFVEbWw1T1I0TzN5MTRZVjNHWV9DdF9IWkxEejVJUjAifSx7ImlkIjoxMSwiayI6ImllUlNXN0FQbExuMUxWTjAzNEtmTklqLTh4bnJOeWlhdXlzVDNVZUgzN28ifSx7ImlkIjoxNCwiayI6IjJSeG5pTXN6M01xWEVQZlcwRnotM3lhNF96b25xR2xBRV9Wbnl6eEpfNFkifSx7ImlkIjoxOCwiayI6IjFiQVJnWk1wZ3Y3NDBTc2tyQkVSMDNJd2I5WDhmcVRKMzEzUC1BSDdtWHcifV19.-xYtxUG6RKBjxBdZmutJukYlB5Tb_C1af-b6Qitooq32XkfMKr38R9w4li4hYd4AhwvmtYNHY4WSFngicAe87w";
 const QR_PUBLIC_JWK={"kty":"EC","crv":"P-256","x":"zIaO_UNZG3dcxEVdIgNOWFUBgMaUV_h5l0UeXlAVNw4","y":"mfat8VZrHZ151yjyilpWAaX4GsJq2MEHY6WFyIx-3A4","ext":true};
-const cards=Array.from({length:20},(_,i)=>({id:i+1,type:TYPE_MAP[i+1]||'',enc:`cards_enc/${String(i+1).padStart(3,'0')}.card`,preview:`previews/${String(i+1).padStart(3,'0')}.webp`}));
+const cards=Array.from({length:20},(_,i)=>({id:i+1,type:TYPE_MAP[i+1]||'',enc:`cards_enc/${String(i+1).padStart(3,'0')}.card?v=20260826-content1`,preview:`previews/${String(i+1).padStart(3,'0')}.webp?v=20260826-content1`}));
 const state={protectedKeys:{},usedQr:new Set()};
 const cardKeyCache=new Map();
 const decryptedUrls=new Map();
@@ -21,7 +18,6 @@ const galleryPosition=document.getElementById('galleryPosition');
 const revealBar=document.getElementById('revealBar');
 const revealText=document.getElementById('revealText');
 const toast=document.getElementById('toast');
-const qrDialog=document.getElementById('qrDialog');
 const scannerDialog=document.getElementById('scannerDialog');
 const scannerVideo=document.getElementById('scannerVideo');
 const scannerStatus=document.getElementById('scannerStatus');
@@ -87,6 +83,13 @@ async function buildGallery(){
     const c=cards[i],locked=!isUnlocked(c.id)||revealPending.has(c.id),src=await imageFor(c);
     const slide=document.createElement('article');slide.className='gallery-slide';slide.dataset.index=String(i);
     slide.innerHTML=`<div class="gallery-card${locked?' locked':''}"><img class="card-image" src="${src}" alt="Card ${pad(c.id)}"><div class="shade"></div></div>`;
+    const gi=slide.querySelector('.card-image');
+    const gc=slide.querySelector('.gallery-card');
+    gi.addEventListener('load',()=>{
+      if(gi.naturalWidth&&gi.naturalHeight){
+        gc.style.setProperty('--card-ratio',`${gi.naturalWidth}/${gi.naturalHeight}`);
+      }
+    },{once:true});
     galleryTrack.appendChild(slide);
   }
 }
@@ -182,7 +185,6 @@ async function importQr(text){
   revealCancelled=false;
   toast.hidden=true;
   revealBar.hidden=false;
-  qrDialog.close();
 
   /* IMPORTANT:
      the AES key of a new card is NOT written to persistent storage until
@@ -264,18 +266,31 @@ document.getElementById('scanQr').addEventListener('click',startScanner);
 document.getElementById('closeScanner').addEventListener('click',stopScanner);
 scannerDialog.addEventListener('cancel',e=>{e.preventDefault();stopScanner();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&scannerActive)stopScanner();});
-document.getElementById('testQr').addEventListener('click',()=>qrDialog.showModal());
-document.getElementById('closeQr').addEventListener('click',()=>qrDialog.close());
-document.getElementById('qrA').addEventListener('click',()=>importQr(QR_A));
-document.getElementById('qrB').addEventListener('click',()=>importQr(QR_B));
-document.getElementById('qrFake').addEventListener('click',()=>importQr(QR_FAKE));
-document.getElementById('resetDemo').addEventListener('click',async()=>{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(LEGACY_STORAGE_KEY);for(const u of decryptedUrls.values())URL.revokeObjectURL(u);decryptedUrls.clear();cardKeyCache.clear();state.protectedKeys={};state.usedQr=new Set();qrDialog.close();toast.textContent='DEMO AZZERATA';toast.hidden=false;await render();});
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
-      const reg=await navigator.serviceWorker.register('./sw.js?v=20260826-ui4');
+      const reg=await navigator.serviceWorker.register('./sw.js?v=20260826-ui8');
       reg.update().catch(()=>{});
     }catch(e){}
   });
 }
 (async()=>{try{loadProtectedState();await migrateLegacyState();await getDeviceWrapKey();await render();}catch(e){toast.textContent='ERRORE ARCHIVIO SICURO LOCALE';toast.hidden=false;console.error(e);}})();
+
+
+
+window.addEventListener('load',()=>{
+  const splash=document.getElementById('splashScreen');
+  if(!splash)return;
+  setTimeout(()=>{splash.classList.add('splash-hide');setTimeout(()=>splash.remove(),750);},2000);
+});
+
+/* Portrait-only PWA. Manifest is the primary lock; API is an additional attempt where supported. */
+async function lockPortrait(){
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      await screen.orientation.lock('portrait');
+    }
+  }catch(e){}
+}
+window.addEventListener('load',lockPortrait);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)lockPortrait();});
