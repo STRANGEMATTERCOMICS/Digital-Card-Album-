@@ -39,3 +39,12 @@ button{font:inherit;color:inherit}
 @media(max-width:380px){body{padding-left:10px;padding-right:10px}.album-grid{gap:15px 9px}.topbar{align-items:flex-start;flex-direction:column}#testQr,.qr-sim,.secondary{width:100%}.gallery-slide{flex-basis:96%}.gallery-track{padding-left:2%;padding-right:2%}}
 @media(min-width:700px){.gallery-slide{flex-basis:min(70%,560px)}.gallery-track{padding-left:15%;padding-right:15%}}
 @media(prefers-reduced-motion:reduce){.card-image,.shade{transition:none!important}.gallery-track{scroll-behavior:auto}}
+
+#scanQr{min-height:44px;border:1px solid currentColor;background:transparent;padding:8px 12px;font-size:11px;font-weight:800;letter-spacing:.06em}
+#scannerDialog{width:min(94vw,520px);border:1px solid #44494d;border-radius:10px;padding:14px;background:#090b0d;color:#f4f4f0}
+#scannerDialog::backdrop{background:rgba(0,0,0,.9)}
+.scanner-stage{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:8px;background:#000}
+#scannerVideo{width:100%;height:100%;object-fit:cover;display:block}
+.scanner-frame{position:absolute;inset:16%;border:2px solid rgba(255,255,255,.9);border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
+#scannerDialog p{font-size:12px;line-height:1.45;opacity:.8;margin:12px 2px 2px}
+@media(max-width:380px){#scanQr{width:100%}}
