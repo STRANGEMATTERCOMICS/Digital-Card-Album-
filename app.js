@@ -7,7 +7,7 @@ function dismissSplash(){
   document.body.classList.remove('splash-active');
   window.setTimeout(()=>splashScreen.remove(),500);
 }
-window.setTimeout(dismissSplash,2000);
+window.setTimeout(dismissSplash,3000);
 
 /* Blocca il portrait quando l'API è disponibile. Il manifest imposta comunque orientation: portrait. */
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
@@ -27,15 +27,21 @@ const galleryPosition=document.getElementById('galleryPosition');
 const revealBar=document.getElementById('revealBar');
 const revealText=document.getElementById('revealText');
 const toast=document.getElementById('toast');
+const scanQrButton=document.getElementById('scanQr');
+const qrScanner=document.getElementById('qrScanner');
+const closeQrScannerButton=document.getElementById('closeQrScanner');
+const qrVideo=document.getElementById('qrVideo');
+const qrStatus=document.getElementById('qrStatus');
 let galleryIndex=0,revealCancelled=false,revealRunning=false,galleryScrollTimer=null;
+let qrStream=null,qrDetector=null,qrScanning=false,qrFrameHandle=null;
 
 function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const p=JSON.parse(raw);return {keys:p.keys||{},usedQr:new Set(p.usedQr||[])};}}catch(e){}return {keys:{},usedQr:new Set()};}
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify({keys:state.keys,usedQr:[...state.usedQr]}));}
 function pad(n){return String(n).padStart(3,'0')}
 function isUnlocked(id){return typeof state.keys[id]==='string'&&state.keys[id].length>20}
 function b64uToBytes(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const raw=atob(s);return Uint8Array.from(raw,c=>c.charCodeAt(0));}
-function decodePayload(text){if(typeof text!=='string'||!text.startsWith('AD1.'))throw new Error('QR non riconosciuto');const raw=new TextDecoder().decode(b64uToBytes(text.slice(4)));const p=JSON.parse(raw);if(p.v!==1||typeof p.pack!=='string'||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Payload QR non valido');for(const item of p.cards){if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string')throw new Error('Card QR non valida');}return p;}
-async function decryptCard(id,keyText){if(decryptedUrls.has(id))return decryptedUrls.get(id);const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('File cifrato non valido');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,url);return url;}
+function decodePayload(text){if(typeof text!=='string'||!text.startsWith('AD1.'))throw new Error('QR code not recognized');const raw=new TextDecoder().decode(b64uToBytes(text.slice(4)));const p=JSON.parse(raw);if(p.v!==1||typeof p.pack!=='string'||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Invalid QR payload');for(const item of p.cards){if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string')throw new Error('Invalid QR card');}return p;}
+async function decryptCard(id,keyText){if(decryptedUrls.has(id))return decryptedUrls.get(id);const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('Invalid encrypted file');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,url);return url;}
 async function imageFor(c){if(!isUnlocked(c.id))return c.preview;try{return await decryptCard(c.id,state.keys[c.id]);}catch(e){return c.preview;}}
 
 async function render(){
@@ -43,7 +49,7 @@ async function render(){
   for(let i=0;i<cards.length;i++){
     const c=cards[i],unlocked=isUnlocked(c.id);
     const slot=document.createElement('article');slot.className='slot'+(unlocked?'':' locked');slot.dataset.id=c.id;
-    const btn=document.createElement('button');btn.type='button';btn.className='card-button';btn.disabled=!unlocked;btn.setAttribute('aria-label',`Card ${pad(c.id)}${c.type?' '+c.type:''}${unlocked?'':' non sbloccata'}`);
+    const btn=document.createElement('button');btn.type='button';btn.className='card-button';btn.disabled=!unlocked;btn.setAttribute('aria-label',`Card ${pad(c.id)}${c.type?' '+c.type:''}${unlocked?'':' locked'}`);
     const src=await imageFor(c);
     btn.innerHTML=`<div class="card-frame"><img class="card-image" src="${src}" alt="Card ${pad(c.id)}"><div class="shade"></div></div><div class="slot-meta"><span>#${pad(c.id)}</span><span>${c.type}</span></div>`;
     btn.addEventListener('click',()=>openGallery(i));slot.appendChild(btn);grid.appendChild(slot);
@@ -86,7 +92,7 @@ function updateGalleryMeta(i){
   galleryIndex=Math.max(0,Math.min(cards.length-1,i));
   const c=cards[galleryIndex],locked=!isUnlocked(c.id);
   galleryPosition.textContent=`${galleryIndex+1} / ${cards.length}`;
-  galleryMeta.textContent=`#${pad(c.id)}${c.type?'  '+c.type:''}${locked?'  ·  NON SBLOCCATA':''}`;
+  galleryMeta.textContent=`#${pad(c.id)}${c.type?'  '+c.type:''}${locked?'  ·  LOCKED':''}`;
   updateAdaptiveGallery(galleryIndex);
 }
 
@@ -122,24 +128,88 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function importQr(text){
   if(revealRunning)return;
   let p;try{p=decodePayload(text);}catch(e){toast.textContent=e.message;toast.hidden=false;return;}
-  if(state.usedQr.has(p.pack)){toast.textContent='QR GIÀ USATO SU QUESTO DISPOSITIVO';toast.hidden=false;return;}
+  if(state.usedQr.has(p.pack)){toast.textContent='QR CODE ALREADY USED ON THIS DEVICE';toast.hidden=false;return;}
   const targets=[];
   for(const item of p.cards){if(!isUnlocked(item.id))targets.push(item.id);state.keys[item.id]=item.k;}
   state.usedQr.add(p.pack);saveState();
-  if(!targets.length){toast.textContent='NESSUNA NUOVA CARD';toast.hidden=false;await render();return;}
+  if(!targets.length){toast.textContent='NO NEW CARDS';toast.hidden=false;await render();return;}
   revealRunning=true;revealCancelled=false;toast.hidden=true;revealBar.hidden=false;ownedCount.textContent=Object.keys(state.keys).filter(k=>isUnlocked(Number(k))).length;
   for(const id of targets){
     if(revealCancelled)break;
     await render();const slot=grid.querySelector(`[data-id="${id}"]`);if(!slot)continue;
-    slot.classList.add('locked');const img=slot.querySelector('.card-image');img.src=cards[id-1].preview;slot.scrollIntoView({behavior:'smooth',block:'center'});revealText.textContent=`RIVELAZIONE #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
+    slot.classList.add('locked');const img=slot.querySelector('.card-image');img.src=cards[id-1].preview;slot.scrollIntoView({behavior:'smooth',block:'center'});revealText.textContent=`REVEAL #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
     await wait(600);if(revealCancelled)break;
-    try{img.src=await decryptCard(id,state.keys[id]);}catch(e){toast.textContent=`ERRORE DECIFRAZIONE #${pad(id)}`;toast.hidden=false;}
+    try{img.src=await decryptCard(id,state.keys[id]);}catch(e){toast.textContent=`DECRYPTION ERROR #${pad(id)}`;toast.hidden=false;}
     slot.classList.remove('locked');slot.classList.add('revealing');await wait(800);if(revealCancelled)break;await wait(600);
   }
-  await render();revealBar.hidden=true;revealRunning=false;toast.textContent=`${targets.length} NUOVE CARD SBLOCCATE`;toast.hidden=false;
+  await render();revealBar.hidden=true;revealRunning=false;toast.textContent=`${targets.length} NEW CARDS UNLOCKED`;toast.hidden=false;
 }
 
-document.getElementById('skipReveal').addEventListener('click',async()=>{revealCancelled=true;revealBar.hidden=true;revealRunning=false;await render();toast.textContent='CARD SBLOCCATE';toast.hidden=false;});
+document.getElementById('skipReveal').addEventListener('click',async()=>{revealCancelled=true;revealBar.hidden=true;revealRunning=false;await render();toast.textContent='CARDS UNLOCKED';toast.hidden=false;});
+
+
+/* Scanner QR reale tramite fotocamera posteriore. Nessun payload demo incorporato. */
+function stopQrScanner(){
+  qrScanning=false;
+  if(qrFrameHandle){cancelAnimationFrame(qrFrameHandle);qrFrameHandle=null;}
+  if(qrVideo){try{qrVideo.pause();}catch(e){}qrVideo.srcObject=null;}
+  if(qrStream){for(const track of qrStream.getTracks())track.stop();qrStream=null;}
+  if(qrScanner?.open)qrScanner.close();
+}
+
+async function scanQrFrame(){
+  if(!qrScanning||!qrDetector||!qrVideo)return;
+  try{
+    if(qrVideo.readyState>=2){
+      const results=await qrDetector.detect(qrVideo);
+      const value=results?.[0]?.rawValue?.trim();
+      if(value){
+        qrStatus.textContent='QR CODE DETECTED';
+        stopQrScanner();
+        await importQr(value);
+        return;
+      }
+    }
+  }catch(e){}
+  if(qrScanning)qrFrameHandle=requestAnimationFrame(scanQrFrame);
+}
+
+async function openQrScanner(){
+  if(revealRunning)return;
+  toast.hidden=true;
+  if(!('BarcodeDetector' in window)){
+    toast.textContent='QR SCANNING IS NOT SUPPORTED BY THIS BROWSER';
+    toast.hidden=false;
+    return;
+  }
+  if(!navigator.mediaDevices?.getUserMedia){
+    toast.textContent='CAMERA NOT AVAILABLE';
+    toast.hidden=false;
+    return;
+  }
+  try{
+    const formats=await BarcodeDetector.getSupportedFormats?.();
+    if(Array.isArray(formats)&&!formats.includes('qr_code'))throw new Error('qr-not-supported');
+    qrDetector=new BarcodeDetector({formats:['qr_code']});
+    qrStatus.textContent='STARTING CAMERA…';
+    qrScanner.showModal();
+    qrStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:1280}}});
+    qrVideo.srcObject=qrStream;
+    await qrVideo.play();
+    qrStatus.textContent='FRAME THE QR CODE INSIDE THE BOX';
+    qrScanning=true;
+    qrFrameHandle=requestAnimationFrame(scanQrFrame);
+  }catch(e){
+    stopQrScanner();
+    toast.textContent=e?.name==='NotAllowedError'?'CAMERA PERMISSION DENIED':'UNABLE TO START QR SCANNER';
+    toast.hidden=false;
+  }
+}
+
+scanQrButton?.addEventListener('click',openQrScanner);
+closeQrScannerButton?.addEventListener('click',stopQrScanner);
+qrScanner?.addEventListener('cancel',e=>{e.preventDefault();stopQrScanner();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&qrScanning)stopQrScanner();});
 
 /* Ingresso QR di produzione: il QR può aprire la PWA con ?qr=AD1... oppure #qr=AD1... / #AD1... . Nessun QR demo è incorporato. */
 function qrFromLocation(){

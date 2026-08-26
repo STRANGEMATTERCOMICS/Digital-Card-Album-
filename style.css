@@ -10,9 +10,11 @@ body.splash-active{overflow:hidden}
 .splash-screen.is-hiding{opacity:0;visibility:hidden;pointer-events:none}
 .splash-image{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center;background:#0b0d0f}
 .splash-image.is-missing{display:none}
+.splash-copyright{position:absolute;z-index:2;left:16px;right:16px;bottom:max(24px,calc(env(safe-area-inset-bottom) + 14px));text-align:center;color:#fff;font-size:10px;font-weight:600;letter-spacing:.08em;line-height:1.35;opacity:.72;text-shadow:0 1px 3px rgba(0,0,0,.65);pointer-events:none;transition:opacity .45s ease}
+.splash-screen.is-hiding .splash-copyright{opacity:0}
 
 .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 2px 18px;border-bottom:1px solid #34383c;margin-bottom:16px}
-.eyebrow{font-size:10px;letter-spacing:.18em;opacity:.58;margin-bottom:5px}.progress{font-size:16px;letter-spacing:.04em}
+.eyebrow{font-size:10px;letter-spacing:.18em;opacity:.58;margin-bottom:5px}.progress{font-size:16px;letter-spacing:.04em}.scan-qr{min-height:44px;padding:0 14px;border:1px solid #5b6268;background:#15181b;border-radius:5px;font-size:11px;font-weight:800;letter-spacing:.12em;white-space:nowrap}
 
 /* ALBUM: 2 slot per riga */
 .album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;max-width:680px;margin:0 auto}
@@ -44,3 +46,17 @@ body.splash-active{overflow:hidden}
 @media(max-width:380px){body{padding-left:10px;padding-right:10px}.album-grid{gap:15px 9px}.gallery-slide{flex-basis:94vw}.gallery-track{padding-left:3%;padding-right:3%}}
 @media(min-width:700px){.gallery-slide{flex-basis:min(76vw,620px)}.gallery-track{padding-left:12%;padding-right:12%}}
 @media(prefers-reduced-motion:reduce){.card-image,.shade,#gallery,body{transition:none!important}.gallery-track{scroll-behavior:auto}.splash-screen{transition:none!important}}
+
+
+/* SCANNER QR REALE */
+.qr-scanner{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#050607;color:#f4f4f0;overflow:hidden}
+.qr-scanner[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.qr-scanner::backdrop{background:#000}
+.qr-scanner-head{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;padding:max(10px,env(safe-area-inset-top)) 10px 8px;min-height:62px;background:#090b0d;z-index:2}
+.qr-scanner-head button{width:44px;height:44px;border:1px solid currentColor;background:transparent;font-size:28px;line-height:1}
+.qr-scanner-head strong{text-align:center;font-size:11px;letter-spacing:.14em}
+.qr-camera{position:relative;min-height:0;overflow:hidden;background:#000}
+.qr-camera video{width:100%;height:100%;display:block;object-fit:cover}
+.qr-reticle{position:absolute;left:50%;top:50%;width:min(72vw,340px);aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.92);box-shadow:0 0 0 9999px rgba(0,0,0,.38);border-radius:12px;pointer-events:none}
+.qr-reticle::before,.qr-reticle::after{content:"";position:absolute;inset:12%;border:1px solid rgba(255,255,255,.16)}
+.qr-status{min-height:56px;padding:14px 16px max(14px,env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center;text-align:center;background:#090b0d;font-size:11px;font-weight:800;letter-spacing:.1em}

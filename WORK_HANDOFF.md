@@ -1,4 +1,4 @@
-# ALBUM DIGITALE — MASTER DI PROGETTO
+# ALBUM DIGITALE — MASTER v3 OFFLINE DI PROGETTO
 
 **Master:** 2026-08-26 v1  
 **Regola:** da questa build in avanti NON usare più i vecchi ZIP `WORK_TRANSFER`, `SPLASH_FIXED` o `SPLASH_GALLERY_FIXED` come base. Ogni modifica futura deve partire da questo MASTER.
@@ -17,6 +17,8 @@
 - Orientamento impostato portrait nel manifest + tentativo Screen Orientation API.
 
 ## QR — produzione
+- Scanner QR reale reintegrato: pulsante `LEGGI QR` nella topbar, fotocamera posteriore, mirino fullscreen, chiusura automatica al riconoscimento e passaggio del payload al decoder `AD1`.
+- Implementazione scanner: `BarcodeDetector` + `getUserMedia`; richiede HTTPS/PWA e permesso fotocamera.
 - **RIMOSSI definitivamente:** pulsante `TEST QR`, dialog test, QR A/B incorporati, RESET DEMO.
 - L'app conserva il decoder del payload `AD1.` e il meccanismo reale di sblocco.
 - Ingresso QR supportato dal MASTER tramite URL:
@@ -29,7 +31,7 @@
 
 ## Splash
 - `splash.png` va nella ROOT, allo stesso livello di `index.html`.
-- Splash custom visibile a ogni avvio per 2 s + fade.
+- Splash custom visibile a ogni avvio per 3 s + fade.
 - Immagine realmente edge-to-edge: `width:100%`, `height:100%`, `object-fit:cover`, nessun padding.
 - `splash.png` è precaricata.
 - **Rimosso il fallback all'icona**: se `splash.png` manca, si vede solo il fondo scuro, mai `icon-512.png` come splash HTML.
@@ -52,7 +54,7 @@
 ## File principali
 - `index.html` — struttura UI.
 - `style.css` — album, splash, gallery.
-- `app.js` — cifratura, stato, reveal, gallery, QR da URL, adaptive background.
+- `app.js` — cifratura, stato, reveal, gallery, scanner QR fotocamera + QR da URL, adaptive background.
 - `sw.js` — cache/versioning.
 - `manifest.webmanifest` — PWA fullscreen + portrait.
 - `splash.png` — grafica splash da aggiungere in root (non inclusa nel MASTER se non fornita).
@@ -66,3 +68,21 @@
 4. Non reintrodurre strumenti demo/test nell'interfaccia pubblica.
 5. Non inserire chiavi private o generatori QR nell'app pubblicata.
 6. Prima di consegnare: controllare sintassi JS, riferimenti file, presenza di stringhe `TEST QR`, `QR A`, `QR B`, `RESET DEMO` e regressioni gallery/splash.
+
+
+## OFFLINE / PWA installata — MASTER v3
+- Dopo la prima installazione completa, l’album deve funzionare senza collegamento a GitHub.
+- Service Worker impostato `offline-first`: HTML, CSS, JS, manifest, icone, preview e `.card` vengono precaricati localmente.
+- `splash.png`, se presente nella root al momento dell’installazione/aggiornamento, viene memorizzata offline senza rendere fallita l’installazione se manca.
+- Lo scanner QR usa `getUserMedia` + `BarcodeDetector` locali del browser/Android: non usa CDN né servizi GitHub durante la scansione.
+- La fotocamera continua a richiedere il permesso del sistema anche quando la PWA è offline.
+- GitHub resta necessario soltanto per installare o ricevere nuove versioni della PWA, non per l’uso quotidiano già installato.
+
+
+## MASTER v4 — user-facing language + splash
+- Tutte le diciture visibili nell’app sono ora in inglese, inclusi pulsanti, scanner QR, stato collezione, gallery, reveal, toast/errori, `aria-label`, titolo pagina e nome PWA nel manifest.
+- Splash: durata 3 secondi prima dell’avvio del fade.
+- Copyright sovrapposto in bianco verso il fondo: `© TOTISMAGISTIS/STRANGE MATTER COMICS`, piccolo e poco invasivo.
+- Il copyright appartiene al contenitore splash e sfuma insieme alla splash; ha anche una propria transizione di opacità sincronizzata.
+- Cache Service Worker aggiornata a `album-digitale-master-2026-08-27-v4-english-splash`.
+- Questa v4 sostituisce la v3 come base MASTER ufficiale.

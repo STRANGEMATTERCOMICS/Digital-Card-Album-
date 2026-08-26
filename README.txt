@@ -1,17 +1,15 @@
-ALBUM DIGITALE — MASTER 2026-08-26 v1
+ALBUM DIGITALE — MASTER v3 OFFLINE
 
-Questa cartella è la base unica di sviluppo del progetto.
+Questa è la base master del progetto.
 
-PUBBLICAZIONE
-Carica tutti i file su GitHub Pages mantenendo cartelle e nomi. Aggiungi `splash.png` nella root accanto a `index.html`.
-
-IMPORTANTE
-- Nessun TEST QR è presente nell'interfaccia o nel codice demo.
-- La gallery è full-screen e non deve più collassare in una linea.
-- La splash HTML è full-screen edge-to-edge e non usa l'icona come fallback.
-- Un'eventuale icona mostrata PRIMA della splash su una PWA installata è la schermata nativa del sistema/browser, non la splash HTML.
-- Orientamento richiesto: portrait.
-- La cache è versionata e le preview usano network-first per evitare immagini vecchie dopo gli aggiornamenti.
+FUNZIONAMENTO OFFLINE
+Dopo l'installazione completa della PWA, l'album usa una cache locale offline-first.
+Galleria, preview, card cifrate e scanner QR con fotocamera non richiedono GitHub durante l'uso.
+GitHub/hosting HTTPS serve per la prima installazione e per distribuire gli aggiornamenti.
 
 QR
-Il MASTER accetta payload AD1 passati alla PWA tramite `?qr=`, `#qr=` o hash diretto `#AD1.`. La firma crittografica dei QR non viene dichiarata attiva in questa build perché non era presente nei file sorgente recuperati.
+Il pulsante LEGGI QR apre la fotocamera posteriore e usa BarcodeDetector del browser/Android.
+Nessun TEST QR o payload demo è incluso.
+
+SPLASH
+Mettere splash.png nella root, accanto a index.html. Se presente durante installazione/aggiornamento viene salvata anche per l'uso offline.

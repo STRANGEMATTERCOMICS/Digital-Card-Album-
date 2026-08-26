@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -9,35 +9,50 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" as="image" href="splash.png">
   <link rel="stylesheet" href="style.css">
-  <title>Album Digitale</title>
+  <title>Digital Album</title>
 </head>
 <body class="splash-active">
   <div id="splashScreen" class="splash-screen" role="presentation" aria-hidden="true">
     <img id="splashImage" class="splash-image" src="splash.png" alt="">
+    <div class="splash-copyright">© TOTISMAGISTIS/STRANGE MATTER COMICS</div>
   </div>
 
   <header class="topbar">
     <div>
-      <div class="eyebrow">ALBUM DIGITALE · CIFRATO</div>
-      <div class="progress"><strong id="ownedCount">0</strong> / 20 SBLOCCATE</div>
+      <div class="eyebrow">DIGITAL ALBUM · ENCRYPTED</div>
+      <div class="progress"><strong id="ownedCount">0</strong> / 20 UNLOCKED</div>
     </div>
+    <button id="scanQr" class="scan-qr" type="button">SCAN QR</button>
   </header>
 
-  <main id="albumGrid" class="album-grid" aria-label="Album di 20 card"></main>
+  <main id="albumGrid" class="album-grid" aria-label="20-card album"></main>
 
-  <dialog id="gallery" aria-label="Galleria card">
+  <dialog id="gallery" aria-label="Card gallery">
     <div class="gallery-head">
-      <button id="closeGallery" type="button" aria-label="Chiudi galleria">×</button>
+      <button id="closeGallery" type="button" aria-label="Close gallery">×</button>
       <div id="galleryPosition"></div>
       <span aria-hidden="true"></span>
     </div>
-    <div id="galleryTrack" class="gallery-track" tabindex="0" aria-label="Scorri orizzontalmente le card"></div>
+    <div id="galleryTrack" class="gallery-track" tabindex="0" aria-label="Swipe horizontally through cards"></div>
     <div id="galleryMeta" class="gallery-meta"></div>
   </dialog>
 
+  <dialog id="qrScanner" class="qr-scanner" aria-label="QR scanner">
+    <div class="qr-scanner-head">
+      <button id="closeQrScanner" type="button" aria-label="Close QR scanner">×</button>
+      <strong>FRAME THE QR CODE</strong>
+      <span aria-hidden="true"></span>
+    </div>
+    <div class="qr-camera">
+      <video id="qrVideo" playsinline muted></video>
+      <div class="qr-reticle" aria-hidden="true"></div>
+    </div>
+    <div id="qrStatus" class="qr-status">STARTING CAMERA…</div>
+  </dialog>
+
   <div id="revealBar" class="reveal-bar" hidden>
-    <span id="revealText">SBLOCCO IN CORSO</span>
-    <button id="skipReveal" type="button">SALTA</button>
+    <span id="revealText">UNLOCKING</span>
+    <button id="skipReveal" type="button">SKIP</button>
   </div>
   <div id="toast" class="toast" hidden></div>
   <script src="app.js"></script>
