@@ -1,4 +1,4 @@
-ALBUM DIGITALE — MASTER v7 SIGNED QR
+ALBUM DIGITALE — MASTER v8 GALLERY 5:7
 
 Questa è la base pubblica dell'Album digitale.
 

@@ -1,4 +1,4 @@
-ALBUM DIGITALE — MASTER v7 SIGNED QR — 27/08/2026
+ALBUM DIGITALE — MASTER v8 GALLERY 5:7 — 27/08/2026
 
 STATO
 - PWA offline-first.
@@ -6,6 +6,7 @@ STATO
 - Chiave pubblica in qr_public_key.json e disponibile offline.
 - Compatibilità temporanea con i QR v1 precedenti.
 - Controllo di corrispondenza tra chiavi AES del QR e file .card prima dello sblocco.
+- Cornice della galleria allineata al rapporto reale 5:7 delle card (360 x 504 px), senza bande sopra e sotto.
 
 SICUREZZA
 Non caricare mai su GitHub Card Builder, QR Generator, manifest privati,

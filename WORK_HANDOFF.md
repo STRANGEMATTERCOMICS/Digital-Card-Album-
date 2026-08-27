@@ -111,3 +111,9 @@
 - Service Worker cache updated to `album-digitale-master-2026-08-27-v7-signed-qr`.
 - The synchronized private package contains the Card Builder, QR Generator, QR library and private signing key. None of those private files may be uploaded to this repository.
 - Existing `cards_enc/` and `previews/` are preserved in this branch; they must only be replaced together with the matching private keyring produced by the Builder.
+
+## MASTER v8 — gallery aspect-ratio correction
+- Card `001.webp` measures 360 x 504 px, a 5:7 aspect ratio.
+- The fullscreen gallery frame now uses the same 5:7 ratio instead of 2:3.
+- Card image files are unchanged; the correction removes the black bands above and below the displayed card.
+- Service Worker cache updated to `album-digitale-master-2026-08-27-v8-gallery-5x7`.

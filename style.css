@@ -35,7 +35,7 @@ body.splash-active{overflow:hidden}
 .gallery-track{display:flex;align-items:center;gap:8px;min-height:0;height:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:8px 6%;scrollbar-width:none;touch-action:pan-x;outline:none}
 .gallery-track::-webkit-scrollbar{display:none}
 .gallery-slide{flex:0 0 min(94vw,560px);scroll-snap-align:center;scroll-snap-stop:always;min-width:0;height:100%;display:flex;align-items:center;justify-content:center}
-.gallery-card{position:relative;width:min(100%,calc((100dvh - 150px)*2/3));max-height:100%;aspect-ratio:2/3;overflow:hidden;border-radius:9px;border:1px solid #44494d;background:#17191b}
+.gallery-card{position:relative;width:min(100%,calc((100dvh - 150px)*5/7));max-height:100%;aspect-ratio:5/7;overflow:hidden;border-radius:9px;border:1px solid #44494d;background:#17191b}
 .gallery-card .card-image{object-fit:contain;background:#111}
 .gallery-card.locked .shade{opacity:.32}
 .gallery-meta{text-align:center;padding:12px 10px max(12px,env(safe-area-inset-bottom));font-size:14px;font-weight:800;letter-spacing:.12em;min-height:32px}
