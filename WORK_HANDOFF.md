@@ -99,3 +99,15 @@
 - Malformed QR codes now produce the controlled message `INVALID QR CODE`.
 - AES card keys are validated as 32-byte Base64URL values before they are saved.
 - Service Worker cache updated to `album-digitale-master-2026-08-27-v6-qr-decoder-fix` so installed PWAs receive the corrected `app.js`.
+
+## MASTER v7 — signed QR production flow
+- New production QR format: `AD1.<payload>.<signature>`.
+- Signed payloads use JSON version `v:2`, a random unique `pack` identifier and 1–5 distinct `{id,k}` card entries.
+- The final segment is a real ECDSA P-256 / SHA-256 signature over the exact ASCII string `AD1.<payload>`.
+- The Album imports `qr_public_key.json` and rejects modified payloads, invalid signatures, duplicate card IDs and malformed AES keys.
+- Before saving an unlock, the Album decrypts every referenced `.card`; a valid signature with mismatched Builder keys is rejected as `QR CARD KEY MISMATCH`.
+- Legacy compatibility remains enabled for existing `v:1` QR codes, including the earlier optional final identifier segment. This mode is transitional and is not equivalent to signed-v2 security.
+- `qr_public_key.json` is precached for offline signature verification.
+- Service Worker cache updated to `album-digitale-master-2026-08-27-v7-signed-qr`.
+- The synchronized private package contains the Card Builder, QR Generator, QR library and private signing key. None of those private files may be uploaded to this repository.
+- Existing `cards_enc/` and `previews/` are preserved in this branch; they must only be replaced together with the matching private keyring produced by the Builder.

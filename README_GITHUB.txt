@@ -1,11 +1,17 @@
-ALBUM DIGITALE — UI4 CARD REFRESH FIX — 26/08/2026
+ALBUM DIGITALE — MASTER v7 SIGNED QR — 27/08/2026
 
-Correzione principale:
-- .card e .webp ora usano NETWORK-FIRST quando c'è connessione.
-- Se il file è stato sostituito su GitHub con lo stesso nome, il telefono prende la nuova versione.
-- Se offline, usa la copia in cache.
-- Cache PWA cambiata per forzare l'abbandono della vecchia cache demo.
+STATO
+- PWA offline-first.
+- QR di produzione firmati ECDSA P-256 / SHA-256.
+- Chiave pubblica in qr_public_key.json e disponibile offline.
+- Compatibilità temporanea con i QR v1 precedenti.
+- Controllo di corrispondenza tra chiavi AES del QR e file .card prima dello sblocco.
 
-CARICAMENTO:
-Sostituire tutti i file pubblici su GitHub con quelli di questo ZIP.
-Dopo il commit, aprire l'Album online almeno una volta.
+SICUREZZA
+Non caricare mai su GitHub Card Builder, QR Generator, manifest privati,
+card-keyring.json o qr-signing-private-key.json.
+
+AGGIORNAMENTI
+Quando vengono sostituiti app, preview o file .card, aggiornare sempre il nome
+della cache in sw.js. Card e preview devono essere pubblicate insieme al
+portachiavi privato generato nella stessa operazione.

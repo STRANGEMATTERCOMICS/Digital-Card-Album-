@@ -1,6 +1,6 @@
-ALBUM DIGITALE — MASTER v3 OFFLINE
+ALBUM DIGITALE — MASTER v7 SIGNED QR
 
-Questa è la base master del progetto.
+Questa è la base pubblica dell'Album digitale.
 
 FUNZIONAMENTO OFFLINE
 Dopo l'installazione completa della PWA, l'album usa una cache locale offline-first.
@@ -8,8 +8,10 @@ Galleria, preview, card cifrate e scanner QR con fotocamera non richiedono GitHu
 GitHub/hosting HTTPS serve per la prima installazione e per distribuire gli aggiornamenti.
 
 QR
-Il pulsante LEGGI QR apre la fotocamera posteriore e usa BarcodeDetector del browser/Android.
-Nessun TEST QR o payload demo è incluso.
+Il pulsante SCAN QR apre la fotocamera posteriore e usa BarcodeDetector del browser/Android.
+I nuovi QR v2 sono firmati ECDSA P-256 e verificati con qr_public_key.json.
+I QR v1 precedenti restano temporaneamente compatibili.
+Nessun TEST QR, payload demo, generatore o chiave privata è incluso nella PWA pubblica.
 
 SPLASH
-Mettere splash.png nella root, accanto a index.html. Se presente durante installazione/aggiornamento viene salvata anche per l'uso offline.
+splash.png si trova nella root, accanto a index.html, ed è salvata anche per l'uso offline.

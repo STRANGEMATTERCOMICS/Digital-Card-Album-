@@ -1,1 +1,13 @@
-{"kty":"EC","crv":"P-256","x":"zIaO_UNZG3dcxEVdIgNOWFUBgMaUV_h5l0UeXlAVNw4","y":"mfat8VZrHZ151yjyilpWAaX4GsJq2MEHY6WFyIx-3A4","ext":true}
+{
+  "key_ops": [
+    "verify"
+  ],
+  "ext": true,
+  "kty": "EC",
+  "x": "qUTFvvnSSjoIo3qBWuaz84z4_tVghPBn-io_pJvSVDU",
+  "y": "5eSsIa7OAKEE6Sfuit4WZxznk7BVr1DFC0LB_H4_iLU",
+  "crv": "P-256",
+  "alg": "ES256",
+  "use": "sig",
+  "kid": "bd588fab0277400c8f4a93f9"
+}

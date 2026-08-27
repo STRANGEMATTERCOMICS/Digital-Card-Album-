@@ -15,6 +15,8 @@ window.addEventListener('load',lockPortrait,{once:true});
 
 const TYPE_MAP={3:'V',7:'◆',11:'V',14:'◆',18:'V'};
 const STORAGE_KEY='album-digitale-encrypted-v1';
+const QR_PUBLIC_KEY_URL='./qr_public_key.json';
+const ALLOW_LEGACY_QR=true;
 const cards=Array.from({length:20},(_,i)=>({id:i+1,type:TYPE_MAP[i+1]||'',enc:`cards_enc/${String(i+1).padStart(3,'0')}.card`,preview:`previews/${String(i+1).padStart(3,'0')}.webp`}));
 const state=loadState();
 const decryptedUrls=new Map();
@@ -34,11 +36,12 @@ const qrVideo=document.getElementById('qrVideo');
 const qrStatus=document.getElementById('qrStatus');
 let galleryIndex=0,revealCancelled=false,revealRunning=false,galleryScrollTimer=null;
 let qrStream=null,qrDetector=null,qrScanning=false,qrFrameHandle=null;
+let qrPublicKeyPromise=null;
 
 function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const p=JSON.parse(raw);return {keys:p.keys||{},usedQr:new Set(p.usedQr||[])};}}catch(e){}return {keys:{},usedQr:new Set()};}
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify({keys:state.keys,usedQr:[...state.usedQr]}));}
 function pad(n){return String(n).padStart(3,'0')}
-function isUnlocked(id){return typeof state.keys[id]==='string'&&state.keys[id].length>20}
+function isUnlocked(id){return typeof state.keys[id]==='string'&&/^[A-Za-z0-9_-]{43}$/.test(state.keys[id])}
 function b64uToBytes(value){
   if(typeof value!=='string')throw new Error('Invalid Base64 data');
   let s=value.trim().replace(/\s+/g,'').replace(/-/g,'+').replace(/_/g,'/');
@@ -62,22 +65,65 @@ function normalizeQrText(text){
     if(h.startsWith('qr='))value=decodeURIComponent(h.slice(3));
     else if(h.startsWith('AD1.'))value=decodeURIComponent(h);
   }catch(e){}
-  const match=value.match(/AD1\.[A-Za-z0-9_-]+/);
+  const match=value.match(/AD1\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?/);
   return match?match[0]:'';
 }
-function decodePayload(text){
+async function loadQrPublicKey(){
+  if(!qrPublicKeyPromise){
+    qrPublicKeyPromise=(async()=>{
+      const response=await fetch(QR_PUBLIC_KEY_URL,{cache:'no-store'});
+      if(!response.ok)throw new Error('QR verification key unavailable');
+      const jwk=await response.json();
+      if(jwk?.kty!=='EC'||jwk?.crv!=='P-256'||typeof jwk.x!=='string'||typeof jwk.y!=='string')throw new Error('Invalid QR verification key');
+      return crypto.subtle.importKey('jwk',jwk,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+    })().catch(error=>{qrPublicKeyPromise=null;throw error;});
+  }
+  return qrPublicKeyPromise;
+}
+async function verifyQrSignature(payloadText,signatureText){
+  if(!/^[A-Za-z0-9_-]{86}$/.test(signatureText))return false;
+  const publicKey=await loadQrPublicKey();
+  return crypto.subtle.verify(
+    {name:'ECDSA',hash:'SHA-256'},
+    publicKey,
+    b64uToBytes(signatureText),
+    new TextEncoder().encode(`AD1.${payloadText}`)
+  );
+}
+async function decodePayload(text){
   const value=normalizeQrText(text);
   if(!value)throw new Error('QR code not recognized');
+  const parts=value.split('.');
+  if(parts.length<2||parts.length>3||parts[0]!=='AD1')throw new Error('Invalid QR code');
+  const payloadText=parts[1],signature=parts[2]||'';
   let p;
   try{
-    const raw=new TextDecoder('utf-8',{fatal:true}).decode(b64uToBytes(value.slice(4)));
+    const raw=new TextDecoder('utf-8',{fatal:true}).decode(b64uToBytes(payloadText));
     p=JSON.parse(raw);
   }catch(e){throw new Error('Invalid QR code');}
-  if(p.v!==1||typeof p.pack!=='string'||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Invalid QR payload');
-  for(const item of p.cards){if(!Number.isInteger(item.id)||item.id<1||item.id>20||typeof item.k!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(item.k))throw new Error('Invalid QR card');}
+  let packId='';
+  if(p.v===2){
+    if(parts.length!==3)throw new Error('Signed QR code required');
+    let verified=false;
+    try{verified=await verifyQrSignature(payloadText,signature);}catch(e){throw new Error('QR verification unavailable');}
+    if(!verified)throw new Error('Invalid QR signature');
+    packId=typeof p.pack==='string'?p.pack.trim():'';
+  }else if(p.v===1&&ALLOW_LEGACY_QR){
+    if(signature&&!/^[A-Za-z0-9_-]{80,96}$/.test(signature))throw new Error('Invalid legacy QR identifier');
+    packId=typeof p.pack==='string'&&p.pack.trim()?p.pack.trim():signature;
+  }else{
+    throw new Error('Unsigned QR code not accepted');
+  }
+  if(!/^[A-Za-z0-9_-]{8,128}$/.test(packId)||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Invalid QR payload');
+  const ids=new Set();
+  for(const item of p.cards){
+    if(!Number.isInteger(item.id)||item.id<1||item.id>20||ids.has(item.id)||typeof item.k!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(item.k))throw new Error('Invalid QR card');
+    ids.add(item.id);
+  }
+  p.pack=packId;
   return p;
 }
-async function decryptCard(id,keyText){if(decryptedUrls.has(id))return decryptedUrls.get(id);const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('Invalid encrypted file');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,url);return url;}
+async function decryptCard(id,keyText){const cached=decryptedUrls.get(id);if(cached?.key===keyText)return cached.url;const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('Invalid encrypted file');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,{key:keyText,url});return url;}
 async function imageFor(c){if(!isUnlocked(c.id))return c.preview;try{return await decryptCard(c.id,state.keys[c.id]);}catch(e){return c.preview;}}
 
 async function render(){
@@ -163,8 +209,11 @@ galleryTrack.addEventListener('keydown',e=>{
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function importQr(text){
   if(revealRunning)return;
-  let p;try{p=decodePayload(text);}catch(e){toast.textContent=e.message;toast.hidden=false;return;}
+  let p;try{p=await decodePayload(text);}catch(e){toast.textContent=e.message;toast.hidden=false;return;}
   if(state.usedQr.has(p.pack)){toast.textContent='QR CODE ALREADY USED ON THIS DEVICE';toast.hidden=false;return;}
+  try{
+    for(const item of p.cards)await decryptCard(item.id,item.k);
+  }catch(e){toast.textContent='QR CARD KEY MISMATCH';toast.hidden=false;return;}
   const targets=[];
   for(const item of p.cards){if(!isUnlocked(item.id))targets.push(item.id);state.keys[item.id]=item.k;}
   state.usedQr.add(p.pack);saveState();
