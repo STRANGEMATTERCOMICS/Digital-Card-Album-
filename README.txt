@@ -1,4 +1,4 @@
-ALBUM DIGITALE — MASTER v8 GALLERY 5:7
+ALBUM DIGITALE — MASTER v9 CARD REVEAL
 
 Questa è la base pubblica dell'Album digitale.
 

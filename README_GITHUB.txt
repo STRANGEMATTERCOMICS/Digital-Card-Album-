@@ -1,4 +1,4 @@
-ALBUM DIGITALE — MASTER v8 GALLERY 5:7 — 27/08/2026
+ALBUM DIGITALE — MASTER v9 CARD REVEAL — 27/08/2026
 
 STATO
 - PWA offline-first.
@@ -7,6 +7,7 @@ STATO
 - Compatibilità temporanea con i QR v1 precedenti.
 - Controllo di corrispondenza tra chiavi AES del QR e file .card prima dello sblocco.
 - Cornice della galleria allineata al rapporto reale 5:7 delle card (360 x 504 px), senza bande sopra e sotto.
+- Reveal a schermo intero con scansione, glitch, flash coprente e comparsa finale; identico per tutte le card e senza suoni o vibrazioni.
 
 SICUREZZA
 Non caricare mai su GitHub Card Builder, QR Generator, manifest privati,

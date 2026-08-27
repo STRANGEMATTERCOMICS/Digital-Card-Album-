@@ -50,9 +50,25 @@
     <div id="qrStatus" class="qr-status">STARTING CAMERA…</div>
   </dialog>
 
-  <div id="revealBar" class="reveal-bar" hidden>
-    <span id="revealText">UNLOCKING</span>
-    <button id="skipReveal" type="button">SKIP</button>
+  <div id="revealBar" class="reveal-overlay" role="dialog" aria-modal="true" aria-label="Card reveal" hidden>
+    <div class="reveal-stage">
+      <div id="revealCard" class="reveal-card" aria-hidden="true">
+        <img id="revealPreviewImage" class="reveal-preview-image" alt="">
+        <img id="revealFullImage" class="reveal-full-image" alt="">
+        <div class="reveal-encrypted">
+          <strong>DECRYPTING</strong>
+          <span>AD1 / SECURE CARD</span>
+        </div>
+        <div class="reveal-grid" aria-hidden="true"></div>
+        <div class="reveal-scan" aria-hidden="true"></div>
+        <div class="reveal-glitch reveal-glitch-one" aria-hidden="true"></div>
+        <div class="reveal-glitch reveal-glitch-two" aria-hidden="true"></div>
+        <div class="reveal-flash" aria-hidden="true"></div>
+      </div>
+      <div class="reveal-unlocked" aria-hidden="true">CARD UNLOCKED</div>
+    </div>
+    <div id="revealText" class="reveal-text" aria-live="polite">UNLOCKING</div>
+    <button id="skipReveal" class="skip-reveal" type="button">SKIP</button>
   </div>
   <div id="toast" class="toast" hidden></div>
   <script src="app.js"></script>

@@ -117,3 +117,12 @@
 - The fullscreen gallery frame now uses the same 5:7 ratio instead of 2:3.
 - Card image files are unchanged; the correction removes the black bands above and below the displayed card.
 - Service Worker cache updated to `album-digitale-master-2026-08-27-v8-gallery-5x7`.
+
+## MASTER v9 — unified cinematic card reveal
+- Every newly unlocked card uses the same fullscreen reveal, independently of rarity or type.
+- Sequence: encrypted preview, neutral white scan, brief glitch, fully opaque flash, then the decrypted card.
+- The full card stays at zero opacity until the opaque flash covers the image swap, preventing early artwork exposure.
+- No sound and no vibration are used.
+- Multi-card QR packs reveal one card at a time; `SKIP` immediately closes the overlay while preserving every unlock.
+- Reduced-motion preferences collapse the animation to an immediate reveal.
+- Service Worker cache updated to `album-digitale-master-2026-08-27-v9-card-reveal`.

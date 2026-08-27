@@ -28,6 +28,9 @@ const galleryMeta=document.getElementById('galleryMeta');
 const galleryPosition=document.getElementById('galleryPosition');
 const revealBar=document.getElementById('revealBar');
 const revealText=document.getElementById('revealText');
+const revealCard=document.getElementById('revealCard');
+const revealPreviewImage=document.getElementById('revealPreviewImage');
+const revealFullImage=document.getElementById('revealFullImage');
 const toast=document.getElementById('toast');
 const scanQrButton=document.getElementById('scanQr');
 const qrScanner=document.getElementById('qrScanner');
@@ -37,6 +40,7 @@ const qrStatus=document.getElementById('qrStatus');
 let galleryIndex=0,revealCancelled=false,revealRunning=false,galleryScrollTimer=null;
 let qrStream=null,qrDetector=null,qrScanning=false,qrFrameHandle=null;
 let qrPublicKeyPromise=null;
+const REVEAL_DURATION=2600;
 
 function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const p=JSON.parse(raw);return {keys:p.keys||{},usedQr:new Set(p.usedQr||[])};}}catch(e){}return {keys:{},usedQr:new Set()};}
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify({keys:state.keys,usedQr:[...state.usedQr]}));}
@@ -207,6 +211,28 @@ galleryTrack.addEventListener('keydown',e=>{
 });
 
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function waitForReveal(ms){
+  const end=performance.now()+ms;
+  while(!revealCancelled&&performance.now()<end)await wait(Math.min(50,Math.max(0,end-performance.now())));
+}
+async function loadRevealImage(img,src){
+  img.src=src;
+  if(typeof img.decode==='function'){try{await img.decode();return;}catch(e){}}
+  if(img.complete&&img.naturalWidth)return;
+  await new Promise((resolve,reject)=>{img.addEventListener('load',resolve,{once:true});img.addEventListener('error',reject,{once:true});});
+}
+async function playCardReveal(id){
+  revealCard.classList.remove('is-running');
+  revealText.textContent=`REVEAL #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
+  await loadRevealImage(revealPreviewImage,cards[id-1].preview);
+  const fullSrc=await decryptCard(id,state.keys[id]);
+  await loadRevealImage(revealFullImage,fullSrc);
+  if(revealCancelled)return;
+  void revealCard.offsetWidth;
+  revealCard.classList.add('is-running');
+  const duration=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?100:REVEAL_DURATION;
+  await waitForReveal(duration);
+}
 async function importQr(text){
   if(revealRunning)return;
   let p;try{p=await decodePayload(text);}catch(e){toast.textContent=e.message;toast.hidden=false;return;}
@@ -218,19 +244,16 @@ async function importQr(text){
   for(const item of p.cards){if(!isUnlocked(item.id))targets.push(item.id);state.keys[item.id]=item.k;}
   state.usedQr.add(p.pack);saveState();
   if(!targets.length){toast.textContent='NO NEW CARDS';toast.hidden=false;await render();return;}
-  revealRunning=true;revealCancelled=false;toast.hidden=true;revealBar.hidden=false;ownedCount.textContent=Object.keys(state.keys).filter(k=>isUnlocked(Number(k))).length;
+  revealRunning=true;revealCancelled=false;toast.hidden=true;revealCard.classList.remove('is-running');revealBar.hidden=false;document.body.classList.add('reveal-active');ownedCount.textContent=Object.keys(state.keys).filter(k=>isUnlocked(Number(k))).length;
   for(const id of targets){
     if(revealCancelled)break;
-    await render();const slot=grid.querySelector(`[data-id="${id}"]`);if(!slot)continue;
-    slot.classList.add('locked');const img=slot.querySelector('.card-image');img.src=cards[id-1].preview;slot.scrollIntoView({behavior:'smooth',block:'center'});revealText.textContent=`REVEAL #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
-    await wait(600);if(revealCancelled)break;
-    try{img.src=await decryptCard(id,state.keys[id]);}catch(e){toast.textContent=`DECRYPTION ERROR #${pad(id)}`;toast.hidden=false;}
-    slot.classList.remove('locked');slot.classList.add('revealing');await wait(800);if(revealCancelled)break;await wait(600);
+    try{await playCardReveal(id);}catch(e){toast.textContent=`DECRYPTION ERROR #${pad(id)}`;toast.hidden=false;break;}
+    if(!revealCancelled)await waitForReveal(180);
   }
-  await render();revealBar.hidden=true;revealRunning=false;toast.textContent=`${targets.length} NEW CARDS UNLOCKED`;toast.hidden=false;
+  revealCard.classList.remove('is-running');revealBar.hidden=true;document.body.classList.remove('reveal-active');await render();revealRunning=false;toast.textContent=`${targets.length} NEW CARDS UNLOCKED`;toast.hidden=false;
 }
 
-document.getElementById('skipReveal').addEventListener('click',async()=>{revealCancelled=true;revealBar.hidden=true;revealRunning=false;await render();toast.textContent='CARDS UNLOCKED';toast.hidden=false;});
+document.getElementById('skipReveal').addEventListener('click',()=>{revealCancelled=true;revealCard.classList.remove('is-running');revealBar.hidden=true;document.body.classList.remove('reveal-active');});
 
 
 /* Scanner QR reale tramite fotocamera posteriore. Nessun payload demo incorporato. */
