@@ -13,8 +13,8 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='13.0.0';
-const APP_BUILD=13;
+const APP_VERSION='14.0.0';
+const APP_BUILD=14;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
@@ -501,26 +501,52 @@ async function activateWaitingWorker(reg){
   if(reg?.waiting){reg.waiting.postMessage({type:'SKIP_WAITING'});return true;}
   return false;
 }
+function waitForServiceWorkerUpdate(reg,timeoutMs=15000){
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    let timer;
+    const finish=(fn,value)=>{
+      if(settled)return;
+      settled=true;
+      clearTimeout(timer);
+      reg.removeEventListener('updatefound',onUpdateFound);
+      fn(value);
+    };
+    const watchWorker=(worker)=>{
+      if(!worker)return;
+      const check=()=>{
+        if(worker.state==='installed')finish(resolve,worker);
+        else if(worker.state==='redundant')finish(reject,new Error('Service Worker became redundant'));
+      };
+      worker.addEventListener('statechange',check);
+      check();
+    };
+    const onUpdateFound=()=>watchWorker(reg.installing);
+    reg.addEventListener('updatefound',onUpdateFound);
+    if(reg.waiting)return finish(resolve,reg.waiting);
+    if(reg.installing)watchWorker(reg.installing);
+    timer=setTimeout(()=>finish(reject,new Error('Timed out waiting for Service Worker update')),timeoutMs);
+  });
+}
 async function installAvailableUpdate(){
   updateNowButton.disabled=true;updateLaterButton.disabled=true;updateTitle.textContent='UPDATING…';updateMessage.textContent='Downloading the new version. Your unlocked cards will be preserved.';
   try{
     const reg=swRegistration||await navigator.serviceWorker.getRegistration();
     if(!reg)throw new Error('Service Worker unavailable');
+    const waitingPromise=waitForServiceWorkerUpdate(reg);
     await reg.update();
-    if(await activateWaitingWorker(reg))return;
-    const worker=reg.installing;
-    if(worker){
-      await new Promise((resolve,reject)=>{
-        const done=()=>{if(worker.state==='installed')resolve();else if(worker.state==='redundant')reject(new Error('Update failed'));};
-        worker.addEventListener('statechange',done);done();
-      });
-      if(await activateWaitingWorker(reg))return;
-    }
-    const newest=await fetchRemoteVersion();
-    if(newest.build>APP_BUILD)throw new Error('New Service Worker not ready');
-    location.reload();
+    if(reg.waiting){reg.waiting.postMessage({type:'SKIP_WAITING'});return;}
+    const worker=await waitingPromise;
+    const waiting=reg.waiting||worker;
+    if(waiting?.state==='installed'){waiting.postMessage({type:'SKIP_WAITING'});return;}
+    throw new Error('Updated Service Worker did not reach installed state');
   }catch(e){
-    updateTitle.textContent='UPDATE FAILED';updateMessage.textContent='The update could not be installed. Try again when the connection is stable.';updateNowButton.disabled=false;updateLaterButton.disabled=false;
+    console.error('Album update failed:',e);
+    updateTitle.textContent='UPDATE FAILED';
+    updateMessage.textContent=e?.message?.includes('Timed out')
+      ? 'The new version was detected, but the update service did not become ready. Please try UPDATE again.'
+      : 'The update could not be installed. Please try UPDATE again.';
+    updateNowButton.disabled=false;updateLaterButton.disabled=false;
   }
 }
 checkUpdateButton?.addEventListener('click',()=>{setMenu(false);checkForUpdate({silent:false});});

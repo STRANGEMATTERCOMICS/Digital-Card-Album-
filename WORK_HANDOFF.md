@@ -1,10 +1,10 @@
-# ALBUM DIGITALE — MASTER v13 REFRESH
+# ALBUM DIGITALE — MASTER v14 UPDATE LIFECYCLE FIX
 
-**Master ufficiale:** 2026-08-29 v11 UPDATE READY  
-**Base obbligatoria per ogni modifica futura:** `ALBUM_DIGITALE_MASTER_2026-08-29_v11_UPDATE_READY`  
-**Regola:** non usare più vecchi pacchetti `WORK_TRANSFER`, `SPLASH_FIXED`, `SPLASH_GALLERY_FIXED` o precedenti MASTER come base. Ogni sviluppo deve partire da questa v11 o da una release successiva esplicitamente dichiarata MASTER.
+**Master ufficiale:** 2026-08-29 v14 UPDATE LIFECYCLE FIX  
+**Base obbligatoria per ogni modifica futura:** `ALBUM_DIGITALE_MASTER_2026-08-29_v14_UPDATE_LIFECYCLE_FIX`  
+**Regola:** non usare più vecchi pacchetti `WORK_TRANSFER`, `SPLASH_FIXED`, `SPLASH_GALLERY_FIXED` o precedenti MASTER come base. Ogni sviluppo deve partire da questa v14 o da una release successiva esplicitamente dichiarata MASTER.
 
-## Stato consolidato della MASTER v13
+## Stato consolidato della MASTER v14
 - PWA mobile-first destinata a GitHub Pages e distribuzione tramite Patreon/link diretto.
 - Catalogo card dinamico tramite `cards.json`; la release corrente contiene 20 slot, 2 card per riga, scroll verticale.
 - Il numero di slot non è più hardcoded nell’interfaccia o nel validatore QR: nuove release possono aggiungere slot e asset aggiornando `cards.json`.
@@ -94,12 +94,12 @@
 - `version.json` viene richiesto dalla rete con cache disabilitata per il controllo aggiornamenti.
 
 ## Cache / Service Worker
-- Cache corrente MASTER v13: `album-digitale-master-2026-08-29-v12-refresh`.
+- Cache corrente MASTER v14: `album-digitale-master-2026-08-29-v14-update-lifecycle-fix`.
 - `qr_public_key.json` è inclusa nel precache per consentire verifica firme anche offline.
 - A ogni release pubblicata deve cambiare il nome/versione della cache.
 - Obiettivo prioritario: evitare il riuso di HTML/JS/preview obsolete dopo un aggiornamento GitHub.
 
-## File principali della MASTER v13
+## File principali della MASTER v14
 - `index.html` — struttura UI.
 - `style.css` — album, splash, gallery, reveal.
 - `app.js` — stato collezione, decifratura, QR firmati, scanner, reveal, gallery e fondo adattivo.
@@ -172,3 +172,12 @@ Il contenuto di Work deve essere aggiornato insieme alla MASTER. Work non deve p
 - Notifications close automatically after about 2.6 seconds (longer only for startup/load errors).
 - REFRESH, UPDATE, ABOUT and collection persistence behavior remain unchanged.
 - Service Worker cache bumped to v13.
+
+
+## MASTER v14 — UPDATE LIFECYCLE FIX (2026-08-29)
+- Corretto il falso errore `connection is stable` durante UPDATE da PWA installata.
+- Causa: `registration.update()` può terminare prima che `registration.installing` venga popolato; la v13 controllava troppo presto e concludeva che il nuovo Service Worker non fosse pronto.
+- La v14 attende esplicitamente `updatefound` e lo stato `installed/waiting` del nuovo Service Worker prima di inviare `SKIP_WAITING`.
+- Aggiunto timeout di sicurezza di 15 secondi e messaggi di errore che non attribuiscono automaticamente il problema alla connessione.
+- La collezione locale non viene modificata durante l'update.
+- Service Worker cache bumped to v14.

@@ -1,5 +1,5 @@
 {
-  "version": "13.0.0",
-  "build": 13,
-  "notes": "Adds 2x pinch zoom with two-finger pan and auto-reset, plus temporary popup notifications."
+  "version": "14.0.0",
+  "build": 14,
+  "notes": "Fixes the installed-PWA update flow by waiting for the new Service Worker lifecycle instead of reporting a false connection error."
 }
