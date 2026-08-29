@@ -13,7 +13,7 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='16.0.0'; const APP_BUILD=16;
+const APP_VERSION='17.0.0'; const APP_BUILD=17;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
@@ -491,10 +491,10 @@ async function checkForUpdate({silent=false}={}){
   try{
     const remote=await fetchRemoteVersion();pendingRemoteVersion=remote;
     if(remote.build>APP_BUILD){
-      showUpdateState(`VERSION ${remote.version} AVAILABLE`,remote.notes||'A new version of Digital Album is available.',true);
+      showUpdateState(`VERSION ${remote.version} AVAILABLE`,remote.notes||'A new version of STRANGE COLLECTOR is available.',true);
       return true;
     }
-    if(!silent)showUpdateState('UP TO DATE',`Digital Album ${APP_VERSION} is the latest version.`,false);
+    if(!silent)showUpdateState('UP TO DATE',`STRANGE COLLECTOR ${APP_VERSION} is the latest version.`,false);
     return false;
   }catch(e){
     if(!silent)showUpdateState('OFFLINE / UNAVAILABLE','Unable to check for updates. The album can continue to work offline.',false);

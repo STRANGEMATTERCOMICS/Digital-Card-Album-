@@ -200,3 +200,13 @@ Il contenuto di Work deve essere aggiornato insieme alla MASTER. Work non deve p
 - `cards.json` retains the `type` field for compatibility with QR/catalog logic and future metadata needs; only its visible UI label was removed.
 - Collection persistence, QR unlocks, REFRESH, pinch/pan and reveal behavior are unchanged.
 - Service Worker cache and app build bumped to v16.
+
+
+## MASTER v17 — STRANGE COLLECTOR BRANDING + ABOUT LINK (2026-08-29)
+- Official application name is now **STRANGE COLLECTOR**.
+- Replaced user-facing `Digital Album` / `DIGITAL ALBUM` branding in title, header, side menu, About and update messages.
+- PWA manifest `name` is now `STRANGE COLLECTOR`; `short_name` is `STRANGE`.
+- About now includes the official TOTISMAGISTIS Patreon link: `https://www.patreon.com/cw/TOTISMAGISTIS`.
+- The Patreon link uses a standard HTTPS anchor with `target="_blank"` and `rel="noopener noreferrer"` so supported installed PWAs/browsers hand it to a separate browser tab/window rather than navigating the collector away from its current state.
+- Internal legacy storage key remains unchanged intentionally to preserve existing users' unlocked collection and used-QR state across the rename.
+- App version/build and Service Worker cache bumped to v17.

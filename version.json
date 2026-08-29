@@ -1,5 +1,5 @@
 {
-  "version": "16.0.0",
-  "build": 16,
-  "notes": "Adds a visible 5-second update handover countdown and removes card type/special markers below slots and from gallery metadata; card type is now expected to be part of the card artwork."
+  "version": "17.0.0",
+  "build": 17,
+  "notes": "Renames the app to STRANGE COLLECTOR throughout the user-facing interface and PWA manifest, and adds the official TOTISMAGISTIS Patreon link to About."
 }
