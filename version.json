@@ -1,5 +1,5 @@
 {
-  "version": "14.0.0",
-  "build": 14,
-  "notes": "Fixes the installed-PWA update flow by waiting for the new Service Worker lifecycle instead of reporting a false connection error."
+  "version": "16.0.0",
+  "build": 16,
+  "notes": "Adds a visible 5-second update handover countdown and removes card type/special markers below slots and from gallery metadata; card type is now expected to be part of the card artwork."
 }

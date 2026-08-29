@@ -42,14 +42,14 @@
       <button id="checkUpdate" type="button">UPDATE</button>
       <button id="openAbout" type="button">ABOUT</button>
     </nav>
-    <div class="side-menu-version">VERSION <span id="appVersion">14.0.0</span></div>
+    <div class="side-menu-version">VERSION <span id="appVersion">16.0.0</span></div>
   </aside>
 
   <dialog id="aboutDialog" class="info-dialog" aria-label="About Digital Album">
     <button id="closeAbout" class="info-close" type="button" aria-label="Close about">×</button>
     <div class="eyebrow">ABOUT</div>
     <h2>DIGITAL ALBUM</h2>
-    <p>Version <strong id="aboutVersion">14.0.0</strong></p>
+    <p>Version <strong id="aboutVersion">16.0.0</strong></p>
     <p>© TOTISMAGISTIS / STRANGE MATTER COMICS</p>
   </dialog>
 
@@ -57,6 +57,7 @@
     <div class="eyebrow">UPDATE</div>
     <h2 id="updateTitle">CHECKING…</h2>
     <p id="updateMessage">Checking GitHub for a newer version.</p>
+    <div id="updateCountdown" class="update-countdown" hidden aria-live="polite"><span id="updateCountdownValue">5</span><small>SECONDS</small></div>
     <div class="dialog-actions">
       <button id="updateLater" type="button">LATER</button>
       <button id="updateNow" type="button" hidden>UPDATE</button>

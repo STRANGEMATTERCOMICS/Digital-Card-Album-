@@ -13,8 +13,7 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='14.0.0';
-const APP_BUILD=14;
+const APP_VERSION='16.0.0'; const APP_BUILD=16;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
@@ -172,7 +171,7 @@ async function render(){
     const slot=document.createElement('article');slot.className='slot'+(unlocked?'':' locked');slot.dataset.id=c.id;
     const btn=document.createElement('button');btn.type='button';btn.className='card-button';btn.disabled=!unlocked;btn.setAttribute('aria-label',`Card ${pad(c.id)}${c.type?' '+c.type:''}${unlocked?'':' locked'}`);
     const src=await imageFor(c);
-    btn.innerHTML=`<div class="card-frame"><img class="card-image" src="${src}" alt="Card ${pad(c.id)}"><div class="shade"></div></div><div class="slot-meta"><span>#${pad(c.id)}</span><span>${c.type}</span></div>`;
+    btn.innerHTML=`<div class="card-frame"><img class="card-image" src="${src}" alt="Card ${pad(c.id)}"><div class="shade"></div></div><div class="slot-meta"><span>#${pad(c.id)}</span></div>`;
     btn.addEventListener('click',()=>openGallery(i));slot.appendChild(btn);grid.appendChild(slot);
   }
   ownedCount.textContent=cards.filter(c=>isUnlocked(c.id)).length;
@@ -215,7 +214,7 @@ function updateGalleryMeta(i){
   galleryIndex=Math.max(0,Math.min(cards.length-1,i));
   const c=cards[galleryIndex],locked=!isUnlocked(c.id);
   galleryPosition.textContent=`${galleryIndex+1} / ${cards.length}`;
-  galleryMeta.textContent=`#${pad(c.id)}${c.type?'  '+c.type:''}${locked?'  ·  LOCKED':''}`;
+  galleryMeta.textContent=`#${pad(c.id)}${locked?'  ·  LOCKED':''}`;
   updateAdaptiveGallery(galleryIndex);
 }
 
@@ -435,6 +434,11 @@ const closeAboutButton=document.getElementById('closeAbout');
 const updateDialog=document.getElementById('updateDialog');
 const updateTitle=document.getElementById('updateTitle');
 const updateMessage=document.getElementById('updateMessage');
+const updateCountdown=document.getElementById('updateCountdown');
+const updateCountdownValue=document.getElementById('updateCountdownValue');
+let updateCountdownTimer=null;
+function stopUpdateCountdown(){if(updateCountdownTimer){clearInterval(updateCountdownTimer);updateCountdownTimer=null;}if(updateCountdown)updateCountdown.hidden=true;}
+function startUpdateCountdown(seconds=5){stopUpdateCountdown();let remaining=seconds;if(updateCountdown)updateCountdown.hidden=false;if(updateCountdownValue)updateCountdownValue.textContent=String(remaining);updateCountdownTimer=setInterval(()=>{remaining=Math.max(0,remaining-1);if(updateCountdownValue)updateCountdownValue.textContent=String(remaining);if(remaining<=0){clearInterval(updateCountdownTimer);updateCountdownTimer=null;}},1000);}
 const updateNowButton=document.getElementById('updateNow');
 const updateLaterButton=document.getElementById('updateLater');
 document.getElementById('appVersion').textContent=APP_VERSION;
@@ -446,7 +450,7 @@ menuBackdrop?.addEventListener('click',()=>setMenu(false));
 openAboutButton?.addEventListener('click',()=>{setMenu(false);aboutDialog.showModal();});
 closeAboutButton?.addEventListener('click',()=>aboutDialog.close());
 aboutDialog?.addEventListener('cancel',e=>{e.preventDefault();aboutDialog.close();});
-updateLaterButton?.addEventListener('click',()=>updateDialog.close());
+updateLaterButton?.addEventListener('click',()=>{stopUpdateCountdown();updateDialog.close();});
 
 async function refreshAlbum(){
   setMenu(false);
@@ -528,6 +532,28 @@ function waitForServiceWorkerUpdate(reg,timeoutMs=15000){
     timer=setTimeout(()=>finish(reject,new Error('Timed out waiting for Service Worker update')),timeoutMs);
   });
 }
+function waitForControllerHandover(timeoutMs=5000){
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=()=>{if(done)return;done=true;clearTimeout(timer);navigator.serviceWorker.removeEventListener('controllerchange',onChange);resolve();};
+    const onChange=()=>finish();
+    navigator.serviceWorker.addEventListener('controllerchange',onChange,{once:true});
+    const timer=setTimeout(finish,timeoutMs);
+  });
+}
+async function activateWorkerAndReload(worker){
+  const handover=waitForControllerHandover();
+  worker.postMessage({type:'SKIP_WAITING'});
+  updateTitle.textContent='APPLYING UPDATE…';
+  updateMessage.textContent='Installing the new version. The album will reload automatically.';
+  startUpdateCountdown(5);
+  await handover;
+  stopUpdateCountdown();
+  updateTitle.textContent='UPDATE COMPLETE';
+  updateMessage.textContent='Reloading the album…';
+  await new Promise(resolve=>setTimeout(resolve,220));
+  window.location.reload();
+}
 async function installAvailableUpdate(){
   updateNowButton.disabled=true;updateLaterButton.disabled=true;updateTitle.textContent='UPDATING…';updateMessage.textContent='Downloading the new version. Your unlocked cards will be preserved.';
   try{
@@ -535,13 +561,14 @@ async function installAvailableUpdate(){
     if(!reg)throw new Error('Service Worker unavailable');
     const waitingPromise=waitForServiceWorkerUpdate(reg);
     await reg.update();
-    if(reg.waiting){reg.waiting.postMessage({type:'SKIP_WAITING'});return;}
+    if(reg.waiting){await activateWorkerAndReload(reg.waiting);return;}
     const worker=await waitingPromise;
     const waiting=reg.waiting||worker;
-    if(waiting?.state==='installed'){waiting.postMessage({type:'SKIP_WAITING'});return;}
+    if(waiting?.state==='installed'){await activateWorkerAndReload(waiting);return;}
     throw new Error('Updated Service Worker did not reach installed state');
   }catch(e){
     console.error('Album update failed:',e);
+    stopUpdateCountdown();
     updateTitle.textContent='UPDATE FAILED';
     updateMessage.textContent=e?.message?.includes('Timed out')
       ? 'The new version was detected, but the update service did not become ready. Please try UPDATE again.'
@@ -556,7 +583,6 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
       swRegistration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
-      navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload(),{once:true});
       window.setTimeout(()=>checkForUpdate({silent:true}),3800);
     }catch(e){}
   });

@@ -1,4 +1,4 @@
-const CACHE='album-digitale-master-2026-08-29-v14-update-lifecycle-fix';
+const CACHE='album-digitale-master-2026-08-29-v16-update-timer-clean-slots';
 const CORE=["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./qr_public_key.json","./icons/icon-192.png","./icons/icon-512.png"];
 
 self.addEventListener('install',event=>{

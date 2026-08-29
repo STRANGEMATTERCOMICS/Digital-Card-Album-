@@ -1,10 +1,18 @@
-# ALBUM DIGITALE — MASTER v14 UPDATE LIFECYCLE FIX
+# ALBUM DIGITALE — MASTER v16 AUTO RELOAD FIX
 
-**Master ufficiale:** 2026-08-29 v14 UPDATE LIFECYCLE FIX  
-**Base obbligatoria per ogni modifica futura:** `ALBUM_DIGITALE_MASTER_2026-08-29_v14_UPDATE_LIFECYCLE_FIX`  
-**Regola:** non usare più vecchi pacchetti `WORK_TRANSFER`, `SPLASH_FIXED`, `SPLASH_GALLERY_FIXED` o precedenti MASTER come base. Ogni sviluppo deve partire da questa v14 o da una release successiva esplicitamente dichiarata MASTER.
+**Master ufficiale:** 2026-08-29 v15 AUTO RELOAD FIX  
+**Base obbligatoria per ogni modifica futura:** `ALBUM_DIGITALE_MASTER_2026-08-29_v15_AUTO_RELOAD_FIX`  
+**Regola:** non usare più vecchi pacchetti `WORK_TRANSFER`, `SPLASH_FIXED`, `SPLASH_GALLERY_FIXED` o precedenti MASTER come base. Ogni sviluppo deve partire da questa v15 o da una release successiva esplicitamente dichiarata MASTER.
 
-## Stato consolidato della MASTER v14
+## Update v15 — automatic reload fix
+- Corretto il passaggio finale dell’update nella PWA installata su Chrome/Android.
+- Dopo `SKIP_WAITING`, l’app attende `controllerchange` e ricarica automaticamente la PWA.
+- Se Chrome non emette l’evento entro 5 secondi, scatta comunque un reload di fallback.
+- Eliminata la dipendenza dal refresh manuale del browser dopo un update riuscito.
+- Nessuna modifica a collezione, QR, gallery o storage persistente.
+
+
+## Stato consolidato della MASTER v15
 - PWA mobile-first destinata a GitHub Pages e distribuzione tramite Patreon/link diretto.
 - Catalogo card dinamico tramite `cards.json`; la release corrente contiene 20 slot, 2 card per riga, scroll verticale.
 - Il numero di slot non è più hardcoded nell’interfaccia o nel validatore QR: nuove release possono aggiungere slot e asset aggiornando `cards.json`.
@@ -181,3 +189,14 @@ Il contenuto di Work deve essere aggiornato insieme alla MASTER. Work non deve p
 - Aggiunto timeout di sicurezza di 15 secondi e messaggi di errore che non attribuiscono automaticamente il problema alla connessione.
 - La collezione locale non viene modificata durante l'update.
 - Service Worker cache bumped to v14.
+
+
+## MASTER v16 — UPDATE TIMER + CLEAN SLOTS (2026-08-29)
+- During the final Service Worker handover, UPDATE now shows a visible 5→0 second countdown inside the update dialog.
+- If the new worker takes control earlier, the countdown stops immediately; `UPDATE COMPLETE` is shown briefly and the PWA reloads.
+- The countdown is only a visual representation of the existing 5-second handover fallback; it does not delay a faster update.
+- Removed Variant/Special/type symbols and labels displayed beneath card slots. Only the card number remains below each slot.
+- Removed card type text from gallery metadata as well; rarity/special/variant identification is now expected to be embedded graphically in the card PSD/artwork.
+- `cards.json` retains the `type` field for compatibility with QR/catalog logic and future metadata needs; only its visible UI label was removed.
+- Collection persistence, QR unlocks, REFRESH, pinch/pan and reveal behavior are unchanged.
+- Service Worker cache and app build bumped to v16.
