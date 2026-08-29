@@ -1,5 +1,5 @@
 {
-  "version": "18.0.0",
-  "build": 18,
-  "notes": "Renames the app to STRANGE MATTER COLLECTOR, removes ENCRYPTED from the user interface, and guarantees visible update feedback: fast updates show UPDATE COMPLETE for one second, while slower handovers reveal the countdown after one second."
+  "version": "19.0.0",
+  "build": 19,
+  "notes": "Improves Android/Chrome update reliability by combining Service Worker lifecycle events with polling of waiting/installing state, preventing false update-service timeouts."
 }

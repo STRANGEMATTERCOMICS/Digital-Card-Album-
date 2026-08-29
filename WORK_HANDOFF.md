@@ -220,3 +220,13 @@ Il contenuto di Work deve essere aggiornato insieme alla MASTER. Work non deve p
 - Encryption itself is unchanged; only the visible `ENCRYPTED` wording was removed.
 - Patreon About link, collection persistence, QR system, gallery, reveal, REFRESH and card metadata behavior remain unchanged.
 - App version/build and Service Worker cache bumped to v18.
+
+
+## MASTER v19 — UPDATE RELIABILITY FIX (2026-08-29)
+- Corretto il falso timeout `update service did not become ready` osservato su Chrome Android/PWA installata durante v17→v18.
+- L'attesa del nuovo Service Worker non dipende più soltanto da `updatefound`/`statechange`: verifica anche `registration.waiting` e `registration.installing` ogni 200 ms.
+- Timeout massimo portato a 30 s per installazioni/cache più lente, senza ritardare gli update veloci.
+- Un worker `waiting` o `installed` viene accettato immediatamente; `redundant` resta un errore reale.
+- Conservato il feedback v18: UPDATE appare subito, countdown solo se l'handover supera 1 s, UPDATE COMPLETE visibile circa 1 s prima del reload.
+- Branding STRANGE MATTER COLLECTOR e rimozione ENCRYPTED invariati.
+- Nessuna modifica a QR, collection storage, gallery, reveal o card assets.

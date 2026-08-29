@@ -13,7 +13,7 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='18.0.0'; const APP_BUILD=18;
+const APP_VERSION='19.0.0'; const APP_BUILD=19;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
@@ -505,31 +505,44 @@ async function activateWaitingWorker(reg){
   if(reg?.waiting){reg.waiting.postMessage({type:'SKIP_WAITING'});return true;}
   return false;
 }
-function waitForServiceWorkerUpdate(reg,timeoutMs=15000){
+function waitForServiceWorkerUpdate(reg,timeoutMs=30000){
   return new Promise((resolve,reject)=>{
     let settled=false;
-    let timer;
+    let timeoutTimer=null;
+    let pollTimer=null;
+    const watched=new WeakSet();
+    const cleanup=()=>{
+      clearTimeout(timeoutTimer);
+      clearInterval(pollTimer);
+      reg.removeEventListener('updatefound',onUpdateFound);
+    };
     const finish=(fn,value)=>{
       if(settled)return;
       settled=true;
-      clearTimeout(timer);
-      reg.removeEventListener('updatefound',onUpdateFound);
+      cleanup();
       fn(value);
     };
+    const inspect=()=>{
+      if(reg.waiting){finish(resolve,reg.waiting);return true;}
+      const worker=reg.installing;
+      if(worker){watchWorker(worker);if(worker.state==='installed'){finish(resolve,worker);return true;}if(worker.state==='redundant'){finish(reject,new Error('Service Worker became redundant'));return true;}}
+      return false;
+    };
     const watchWorker=(worker)=>{
-      if(!worker)return;
+      if(!worker||watched.has(worker))return;
+      watched.add(worker);
       const check=()=>{
-        if(worker.state==='installed')finish(resolve,worker);
+        if(worker.state==='installed')finish(resolve,reg.waiting||worker);
         else if(worker.state==='redundant')finish(reject,new Error('Service Worker became redundant'));
       };
       worker.addEventListener('statechange',check);
       check();
     };
-    const onUpdateFound=()=>watchWorker(reg.installing);
+    const onUpdateFound=()=>inspect();
     reg.addEventListener('updatefound',onUpdateFound);
-    if(reg.waiting)return finish(resolve,reg.waiting);
-    if(reg.installing)watchWorker(reg.installing);
-    timer=setTimeout(()=>finish(reject,new Error('Timed out waiting for Service Worker update')),timeoutMs);
+    inspect();
+    pollTimer=setInterval(inspect,200);
+    timeoutTimer=setTimeout(()=>finish(reject,new Error('Timed out waiting for Service Worker update')),timeoutMs);
   });
 }
 function waitForControllerHandover(timeoutMs=5000){
@@ -567,8 +580,8 @@ async function installAvailableUpdate(){
     await reg.update();
     if(reg.waiting){await activateWorkerAndReload(reg.waiting);return;}
     const worker=await waitingPromise;
-    const waiting=reg.waiting||worker;
-    if(waiting?.state==='installed'){await activateWorkerAndReload(waiting);return;}
+    const candidate=reg.waiting||worker;
+    if(candidate&&(candidate.state==='installed'||candidate===reg.waiting)){await activateWorkerAndReload(candidate);return;}
     throw new Error('Updated Service Worker did not reach installed state');
   }catch(e){
     console.error('Album update failed:',e);
