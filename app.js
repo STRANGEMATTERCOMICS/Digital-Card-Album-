@@ -13,7 +13,7 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='17.0.0'; const APP_BUILD=17;
+const APP_VERSION='18.0.0'; const APP_BUILD=18;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
@@ -491,10 +491,10 @@ async function checkForUpdate({silent=false}={}){
   try{
     const remote=await fetchRemoteVersion();pendingRemoteVersion=remote;
     if(remote.build>APP_BUILD){
-      showUpdateState(`VERSION ${remote.version} AVAILABLE`,remote.notes||'A new version of STRANGE COLLECTOR is available.',true);
+      showUpdateState(`VERSION ${remote.version} AVAILABLE`,remote.notes||'A new version of STRANGE MATTER COLLECTOR is available.',true);
       return true;
     }
-    if(!silent)showUpdateState('UP TO DATE',`STRANGE COLLECTOR ${APP_VERSION} is the latest version.`,false);
+    if(!silent)showUpdateState('UP TO DATE',`STRANGE MATTER COLLECTOR ${APP_VERSION} is the latest version.`,false);
     return false;
   }catch(e){
     if(!silent)showUpdateState('OFFLINE / UNAVAILABLE','Unable to check for updates. The album can continue to work offline.',false);
@@ -544,14 +544,18 @@ function waitForControllerHandover(timeoutMs=5000){
 async function activateWorkerAndReload(worker){
   const handover=waitForControllerHandover();
   worker.postMessage({type:'SKIP_WAITING'});
-  updateTitle.textContent='APPLYING UPDATE…';
+  updateTitle.textContent='UPDATING…';
   updateMessage.textContent='Installing the new version. The album will reload automatically.';
-  startUpdateCountdown(5);
+  stopUpdateCountdown();
+  let handoverDone=false;
+  const delayedCountdown=setTimeout(()=>{if(!handoverDone)startUpdateCountdown(4);},1000);
   await handover;
+  handoverDone=true;
+  clearTimeout(delayedCountdown);
   stopUpdateCountdown();
   updateTitle.textContent='UPDATE COMPLETE';
   updateMessage.textContent='Reloading the album…';
-  await new Promise(resolve=>setTimeout(resolve,220));
+  await new Promise(resolve=>setTimeout(resolve,1000));
   window.location.reload();
 }
 async function installAvailableUpdate(){

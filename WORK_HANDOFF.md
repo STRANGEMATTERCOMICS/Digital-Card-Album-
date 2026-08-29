@@ -210,3 +210,13 @@ Il contenuto di Work deve essere aggiornato insieme alla MASTER. Work non deve p
 - The Patreon link uses a standard HTTPS anchor with `target="_blank"` and `rel="noopener noreferrer"` so supported installed PWAs/browsers hand it to a separate browser tab/window rather than navigating the collector away from its current state.
 - Internal legacy storage key remains unchanged intentionally to preserve existing users' unlocked collection and used-QR state across the rename.
 - App version/build and Service Worker cache bumped to v17.
+
+
+## MASTER v18 — STRANGE MATTER COLLECTOR + UPDATE FEEDBACK (2026-08-29)
+- Official user-facing app name changed from STRANGE COLLECTOR to **STRANGE MATTER COLLECTOR**.
+- Removed the `ENCRYPTED` label from the user interface.
+- PWA manifest name changed to `STRANGE MATTER COLLECTOR`; short name is `SM COLLECTOR`.
+- UPDATE feedback refined: the dialog appears immediately; if handover takes more than 1 second, a countdown appears. Fast updates do not show a pointless countdown, but always show `UPDATE COMPLETE` for about 1 second before automatic reload.
+- Encryption itself is unchanged; only the visible `ENCRYPTED` wording was removed.
+- Patreon About link, collection persistence, QR system, gallery, reveal, REFRESH and card metadata behavior remain unchanged.
+- App version/build and Service Worker cache bumped to v18.

@@ -1,6 +1,6 @@
 {
-  "name": "STRANGE COLLECTOR",
-  "short_name": "STRANGE",
+  "name": "STRANGE MATTER COLLECTOR",
+  "short_name": "SM COLLECTOR",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

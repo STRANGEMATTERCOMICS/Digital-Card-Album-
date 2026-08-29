@@ -1,4 +1,4 @@
-const CACHE='strange-collector-master-2026-08-29-v17-branding-about-link';
+const CACHE='strange-matter-collector-master-2026-08-29-v18-branding-update-feedback';
 const CORE=["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./qr_public_key.json","./icons/icon-192.png","./icons/icon-512.png"];
 
 self.addEventListener('install',event=>{

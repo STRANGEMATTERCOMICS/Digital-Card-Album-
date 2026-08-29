@@ -1,5 +1,5 @@
 {
-  "version": "17.0.0",
-  "build": 17,
-  "notes": "Renames the app to STRANGE COLLECTOR throughout the user-facing interface and PWA manifest, and adds the official TOTISMAGISTIS Patreon link to About."
+  "version": "18.0.0",
+  "build": 18,
+  "notes": "Renames the app to STRANGE MATTER COLLECTOR, removes ENCRYPTED from the user interface, and guarantees visible update feedback: fast updates show UPDATE COMPLETE for one second, while slower handovers reveal the countdown after one second."
 }
