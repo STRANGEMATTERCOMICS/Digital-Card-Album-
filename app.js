@@ -13,8 +13,8 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='11.0.0';
-const APP_BUILD=11;
+const APP_VERSION='12.0.0';
+const APP_BUILD=12;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
@@ -404,6 +404,7 @@ const openMenuButton=document.getElementById('openMenu');
 const closeMenuButton=document.getElementById('closeMenu');
 const sideMenu=document.getElementById('sideMenu');
 const menuBackdrop=document.getElementById('menuBackdrop');
+const refreshAlbumButton=document.getElementById('refreshAlbum');
 const checkUpdateButton=document.getElementById('checkUpdate');
 const openAboutButton=document.getElementById('openAbout');
 const aboutDialog=document.getElementById('aboutDialog');
@@ -423,6 +424,32 @@ openAboutButton?.addEventListener('click',()=>{setMenu(false);aboutDialog.showMo
 closeAboutButton?.addEventListener('click',()=>aboutDialog.close());
 aboutDialog?.addEventListener('cancel',e=>{e.preventDefault();aboutDialog.close();});
 updateLaterButton?.addEventListener('click',()=>updateDialog.close());
+
+async function refreshAlbum(){
+  setMenu(false);
+  refreshAlbumButton.disabled=true;
+  const previousText=refreshAlbumButton.textContent;
+  refreshAlbumButton.textContent='REFRESHING…';
+  toast.hidden=true;
+  try{
+    if(qrScanning)stopQrScanner();
+    if(gallery?.open){resetGalleryPinch();gallery.close();}
+    const freshState=loadState();
+    state.keys=freshState.keys;
+    state.usedQr=freshState.usedQr;
+    await loadCardCatalog();
+    await render();
+    toast.textContent='ALBUM REFRESHED';
+    toast.hidden=false;
+  }catch(e){
+    toast.textContent='REFRESH FAILED';
+    toast.hidden=false;
+  }finally{
+    refreshAlbumButton.disabled=false;
+    refreshAlbumButton.textContent=previousText;
+  }
+}
+refreshAlbumButton?.addEventListener('click',refreshAlbum);
 
 async function fetchRemoteVersion(){
   const response=await fetch(`${VERSION_URL}?check=${Date.now()}`,{cache:'no-store'});

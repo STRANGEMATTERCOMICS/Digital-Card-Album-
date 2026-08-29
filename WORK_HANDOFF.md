@@ -1,10 +1,10 @@
-# ALBUM DIGITALE — MASTER v11 UPDATE READY
+# ALBUM DIGITALE — MASTER v12 REFRESH
 
 **Master ufficiale:** 2026-08-29 v11 UPDATE READY  
 **Base obbligatoria per ogni modifica futura:** `ALBUM_DIGITALE_MASTER_2026-08-29_v11_UPDATE_READY`  
 **Regola:** non usare più vecchi pacchetti `WORK_TRANSFER`, `SPLASH_FIXED`, `SPLASH_GALLERY_FIXED` o precedenti MASTER come base. Ogni sviluppo deve partire da questa v11 o da una release successiva esplicitamente dichiarata MASTER.
 
-## Stato consolidato della MASTER v11
+## Stato consolidato della MASTER v12
 - PWA mobile-first destinata a GitHub Pages e distribuzione tramite Patreon/link diretto.
 - Catalogo card dinamico tramite `cards.json`; la release corrente contiene 20 slot, 2 card per riga, scroll verticale.
 - Il numero di slot non è più hardcoded nell’interfaccia o nel validatore QR: nuove release possono aggiungere slot e asset aggiornando `cards.json`.
@@ -49,7 +49,7 @@
 - I QR già usati sul dispositivo restano registrati localmente.
 - La chiave privata di firma e i generatori privati NON devono essere caricati nel repository pubblico.
 
-## Splash — stato v11
+## Splash — stato v12
 - `splash.png` è inclusa nella root, allo stesso livello di `index.html`.
 - Splash custom mostrata a ogni avvio per 3 secondi prima del fade.
 - Immagine edge-to-edge con `width:100%`, `height:100%`, `object-fit:cover`, senza padding.
@@ -59,7 +59,7 @@
 - Copyright piccolo, discreto e sincronizzato con il fade della splash.
 - Limite noto: Android/Chrome può mostrare una schermata nativa con icona prima dell'HTML. Questa schermata non è eliminabile dal codice della pagina.
 
-## Gallery — stato v11
+## Gallery — stato v12
 - Dialog fullscreen forzato a `100vw × 100dvh`.
 - Track centrale con altezza definita e card centrata verticalmente.
 - Swipe orizzontale + `scroll-snap`.
@@ -72,7 +72,7 @@
 - Al rilascio di una delle dita, ritorno automatico a 1× con transizione morbida di circa 180 ms.
 - Lo swipe orizzontale a un dito e lo scroll-snap della gallery restano invariati.
 
-## Reveal card — stato v11
+## Reveal card — stato v12
 - Tutte le nuove card usano un unico reveal fullscreen, indipendentemente da rarità o tipo.
 - Sequenza: preview cifrata/degradata → scan bianco neutro → breve glitch → flash completamente opaco → card decifrata.
 - La card completa rimane a opacità zero fino al flash opaco, impedendo esposizioni anticipate dell'artwork.
@@ -81,7 +81,7 @@
 - `SKIP` chiude immediatamente l'overlay senza perdere alcuno sblocco.
 - Con `prefers-reduced-motion`, l'animazione viene ridotta a reveal immediato.
 
-## Offline / PWA installata — stato v11
+## Offline / PWA installata — stato v12
 - Dopo una prima installazione completa, l'Album deve poter funzionare senza collegamento a GitHub per l'uso quotidiano.
 - Service Worker impostato per precache/offline di HTML, CSS, JS, manifest, icone, preview, `.card`, splash e chiave pubblica QR.
 - Il Service Worker legge `cards.json` in fase di installazione e precacha automaticamente preview e `.card` dichiarate nel catalogo.
@@ -94,12 +94,12 @@
 - `version.json` viene richiesto dalla rete con cache disabilitata per il controllo aggiornamenti.
 
 ## Cache / Service Worker
-- Cache corrente MASTER v11: `album-digitale-master-2026-08-29-v11-update-ready`.
+- Cache corrente MASTER v12: `album-digitale-master-2026-08-29-v12-refresh`.
 - `qr_public_key.json` è inclusa nel precache per consentire verifica firme anche offline.
 - A ogni release pubblicata deve cambiare il nome/versione della cache.
 - Obiettivo prioritario: evitare il riuso di HTML/JS/preview obsolete dopo un aggiornamento GitHub.
 
-## File principali della MASTER v11
+## File principali della MASTER v12
 - `index.html` — struttura UI.
 - `style.css` — album, splash, gallery, reveal.
 - `app.js` — stato collezione, decifratura, QR firmati, scanner, reveal, gallery e fondo adattivo.
@@ -122,10 +122,11 @@
 - **v9** — reveal cinematografico unificato con protezione contro reveal anticipato.
 - **v10** — pinch-to-zoom semplificato in gallery: massimo 1.5×, nessun pan persistente, ritorno automatico a 1× al rilascio.
 - **v11** — menu laterale `UPDATE / ABOUT`, versione visibile, controllo remoto `version.json`, aggiornamento Service Worker su conferma, catalogo dinamico `cards.json` e precache guidato dal catalogo.
+- **v12** — aggiunta voce `REFRESH`: rilegge catalogo e stato locale, ricostruisce slot/contatori e UI senza cancellare sblocchi, QR usati o cache applicativa.
 
-## Prossimi interventi pianificati — NON ancora implementati nella v11
+## Prossimi interventi pianificati — NON ancora implementati nella v12
 1. **Nuova icona PWA definitiva:** almeno 192×192 e 512×512, più variante maskable se necessaria.
-2. **Test reale UPDATE v11 → release test successiva** su GitHub Pages/PWA installata, verificando popup, conferma, reload e conservazione collezione.
+2. **Test reale UPDATE v11 → v12** su GitHub Pages/PWA installata, verificando popup, conferma, reload e conservazione collezione.
 3. Eventuale rifinitura grafica del menu laterale dopo test su Android/iPhone.
 
 ## Regole obbligatorie per modifiche future
@@ -148,8 +149,9 @@
    - assenza stringhe `TEST QR`, `QR A`, `QR B`, `RESET DEMO`.
 8. Lo stato collezione dell'utente deve restare separato dalla cache applicativa e non deve essere cancellato dagli aggiornamenti.
 
-## Sistema UPDATE — stato v11
-- Menu laterale discreto con sole voci `UPDATE` e `ABOUT`; `EXIT` non è implementato.
+## Sistema UPDATE — stato v12
+- Menu laterale discreto con `REFRESH`, `UPDATE` e `ABOUT`; `EXIT` non è implementato.
+- `REFRESH` non esegue update e non svuota cache/storage: rilegge `cards.json`, rilegge lo stato locale della collezione e ricostruisce l’interfaccia.
 - All’avvio, dopo la splash, l’app controlla silenziosamente `version.json` quando la rete è disponibile.
 - Se `build` remoto è maggiore di `APP_BUILD`, compare il dialog di aggiornamento con `UPDATE` e `LATER`.
 - Il pulsante `UPDATE` nel menu forza un controllo manuale e mostra anche lo stato `UP TO DATE` o indisponibilità rete.

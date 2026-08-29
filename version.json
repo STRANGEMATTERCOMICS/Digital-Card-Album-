@@ -1,5 +1,5 @@
 {
-  "version": "11.0.0",
-  "build": 11,
-  "notes": "Update system, dynamic card catalog and side menu."
+  "version": "12.0.0",
+  "build": 12,
+  "notes": "Adds safe Refresh to rebuild the album without affecting unlocked cards or update state."
 }
