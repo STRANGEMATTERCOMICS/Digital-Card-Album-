@@ -13,8 +13,9 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='20.0.0'; const APP_BUILD=20;
+const APP_VERSION='21.0.0'; const APP_BUILD=21;
 const CARD_CATALOG_URL='./cards.json';
+const CARD_METADATA_URL='./cards-manifest.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
 const QR_PUBLIC_KEY_URL='./qr_public_key.json';
@@ -26,12 +27,34 @@ async function loadCardCatalog(){
   if(!response.ok)throw new Error('Card catalog unavailable');
   const data=await response.json();
   if(!Array.isArray(data?.cards)||!data.cards.length)throw new Error('Invalid card catalog');
+
+  let metadataById=new Map();
+  try{
+    const metaResponse=await fetch(CARD_METADATA_URL,{cache:'no-store'});
+    if(metaResponse.ok){
+      const meta=await metaResponse.json();
+      if(Array.isArray(meta?.cards)){
+        metadataById=new Map(meta.cards.map(item=>[Number(item?.id),item]));
+      }
+    }
+  }catch(e){console.warn('Card metadata unavailable; continuing with catalog only.',e);}
+
   const seen=new Set();
   const parsed=data.cards.map(item=>{
     const id=Number(item?.id);
     if(!Number.isInteger(id)||id<1||id>9999||seen.has(id)||typeof item.enc!=='string'||typeof item.preview!=='string')throw new Error('Invalid card catalog');
     seen.add(id);
-    return {id,type:typeof item.type==='string'?item.type:'',enc:item.enc,preview:item.preview};
+    const meta=metadataById.get(id)||{};
+    return {
+      id,
+      legacyType:typeof item.type==='string'?item.type:'',
+      enc:item.enc,
+      preview:item.preview,
+      title:typeof meta.title==='string'?meta.title.trim():'',
+      series:typeof meta.series==='string'?meta.series.trim():'',
+      rarity:typeof meta.rarity==='string'?meta.rarity.trim():'',
+      type:typeof meta.type==='string'?meta.type.trim():''
+    };
   }).sort((a,b)=>a.id-b.id);
   cards=parsed;cardsById.clear();for(const card of cards)cardsById.set(card.id,card);
 }
@@ -214,7 +237,16 @@ function updateGalleryMeta(i){
   galleryIndex=Math.max(0,Math.min(cards.length-1,i));
   const c=cards[galleryIndex],locked=!isUnlocked(c.id);
   galleryPosition.textContent=`${galleryIndex+1} / ${cards.length}`;
-  galleryMeta.textContent=`#${pad(c.id)}${locked?'  ·  LOCKED':''}`;
+  const labels={
+    rarity:{common:'COMMON',rare:'RARE',variant:'VARIANT',special:'SPECIAL',epic:'EPIC'},
+    type:{normal:'NORMAL',night_shift:'NIGHT SHIFT',legendary:'LEGENDARY'}
+  };
+  const rarity=labels.rarity[c.rarity]||c.rarity.toUpperCase();
+  const type=labels.type[c.type]||c.type.toUpperCase();
+  const line1=[`#${pad(c.id)}`,rarity,type,locked?'LOCKED':''].filter(Boolean).join('  ·  ');
+  const details=[c.title,c.series].filter(Boolean);
+  galleryMeta.textContent=details.length?`${details.join('  ·  ')}\n${line1}`:line1;
+  galleryMeta.style.whiteSpace='pre-line';
   updateAdaptiveGallery(galleryIndex);
 }
 
