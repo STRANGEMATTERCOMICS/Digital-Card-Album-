@@ -1,0 +1,125 @@
+{
+  "catalogVersion": 1,
+  "cards": [
+    {
+      "id": 1,
+      "type": "",
+      "enc": "cards_enc/001.card",
+      "preview": "previews/001.webp"
+    },
+    {
+      "id": 2,
+      "type": "",
+      "enc": "cards_enc/002.card",
+      "preview": "previews/002.webp"
+    },
+    {
+      "id": 3,
+      "type": "V",
+      "enc": "cards_enc/003.card",
+      "preview": "previews/003.webp"
+    },
+    {
+      "id": 4,
+      "type": "",
+      "enc": "cards_enc/004.card",
+      "preview": "previews/004.webp"
+    },
+    {
+      "id": 5,
+      "type": "",
+      "enc": "cards_enc/005.card",
+      "preview": "previews/005.webp"
+    },
+    {
+      "id": 6,
+      "type": "",
+      "enc": "cards_enc/006.card",
+      "preview": "previews/006.webp"
+    },
+    {
+      "id": 7,
+      "type": "◆",
+      "enc": "cards_enc/007.card",
+      "preview": "previews/007.webp"
+    },
+    {
+      "id": 8,
+      "type": "",
+      "enc": "cards_enc/008.card",
+      "preview": "previews/008.webp"
+    },
+    {
+      "id": 9,
+      "type": "",
+      "enc": "cards_enc/009.card",
+      "preview": "previews/009.webp"
+    },
+    {
+      "id": 10,
+      "type": "",
+      "enc": "cards_enc/010.card",
+      "preview": "previews/010.webp"
+    },
+    {
+      "id": 11,
+      "type": "V",
+      "enc": "cards_enc/011.card",
+      "preview": "previews/011.webp"
+    },
+    {
+      "id": 12,
+      "type": "",
+      "enc": "cards_enc/012.card",
+      "preview": "previews/012.webp"
+    },
+    {
+      "id": 13,
+      "type": "",
+      "enc": "cards_enc/013.card",
+      "preview": "previews/013.webp"
+    },
+    {
+      "id": 14,
+      "type": "◆",
+      "enc": "cards_enc/014.card",
+      "preview": "previews/014.webp"
+    },
+    {
+      "id": 15,
+      "type": "",
+      "enc": "cards_enc/015.card",
+      "preview": "previews/015.webp"
+    },
+    {
+      "id": 16,
+      "type": "",
+      "enc": "cards_enc/016.card",
+      "preview": "previews/016.webp"
+    },
+    {
+      "id": 17,
+      "type": "",
+      "enc": "cards_enc/017.card",
+      "preview": "previews/017.webp"
+    },
+    {
+      "id": 18,
+      "type": "V",
+      "enc": "cards_enc/018.card",
+      "preview": "previews/018.webp"
+    },
+    {
+      "id": 19,
+      "type": "",
+      "enc": "cards_enc/019.card",
+      "preview": "previews/019.webp"
+    },
+    {
+      "id": 20,
+      "type": "",
+      "enc": "cards_enc/020.card",
+      "preview": "previews/020.webp"
+    }
+  ]
+}

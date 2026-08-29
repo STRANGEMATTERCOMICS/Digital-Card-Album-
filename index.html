@@ -20,12 +20,47 @@
   <header class="topbar">
     <div>
       <div class="eyebrow">DIGITAL ALBUM · ENCRYPTED</div>
-      <div class="progress"><strong id="ownedCount">0</strong> / 20 UNLOCKED</div>
+      <div class="progress"><strong id="ownedCount">0</strong> / <span id="totalCount">0</span> UNLOCKED</div>
     </div>
-    <button id="scanQr" class="scan-qr" type="button">SCAN QR</button>
+    <div class="top-actions"><button id="scanQr" class="scan-qr" type="button">SCAN QR</button><button id="openMenu" class="menu-button" type="button" aria-label="Open menu">☰</button></div>
   </header>
 
-  <main id="albumGrid" class="album-grid" aria-label="20-card album"></main>
+  <main id="albumGrid" class="album-grid" aria-label="Card album"></main>
+
+
+  <div id="menuBackdrop" class="menu-backdrop" hidden></div>
+  <aside id="sideMenu" class="side-menu" aria-hidden="true" aria-label="Application menu">
+    <div class="side-menu-head">
+      <div>
+        <div class="eyebrow">DIGITAL ALBUM</div>
+        <strong>MENU</strong>
+      </div>
+      <button id="closeMenu" type="button" aria-label="Close menu">×</button>
+    </div>
+    <nav class="side-menu-nav" aria-label="Application actions">
+      <button id="checkUpdate" type="button">UPDATE</button>
+      <button id="openAbout" type="button">ABOUT</button>
+    </nav>
+    <div class="side-menu-version">VERSION <span id="appVersion">11.0.0</span></div>
+  </aside>
+
+  <dialog id="aboutDialog" class="info-dialog" aria-label="About Digital Album">
+    <button id="closeAbout" class="info-close" type="button" aria-label="Close about">×</button>
+    <div class="eyebrow">ABOUT</div>
+    <h2>DIGITAL ALBUM</h2>
+    <p>Version <strong id="aboutVersion">11.0.0</strong></p>
+    <p>© TOTISMAGISTIS / STRANGE MATTER COMICS</p>
+  </dialog>
+
+  <dialog id="updateDialog" class="info-dialog update-dialog" aria-label="Application update">
+    <div class="eyebrow">UPDATE</div>
+    <h2 id="updateTitle">CHECKING…</h2>
+    <p id="updateMessage">Checking GitHub for a newer version.</p>
+    <div class="dialog-actions">
+      <button id="updateLater" type="button">LATER</button>
+      <button id="updateNow" type="button" hidden>UPDATE</button>
+    </div>
+  </dialog>
 
   <dialog id="gallery" aria-label="Card gallery">
     <div class="gallery-head">

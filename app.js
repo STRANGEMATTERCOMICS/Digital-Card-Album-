@@ -13,15 +13,35 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const TYPE_MAP={3:'V',7:'◆',11:'V',14:'◆',18:'V'};
+const APP_VERSION='11.0.0';
+const APP_BUILD=11;
+const CARD_CATALOG_URL='./cards.json';
+const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
 const QR_PUBLIC_KEY_URL='./qr_public_key.json';
 const ALLOW_LEGACY_QR=true;
-const cards=Array.from({length:20},(_,i)=>({id:i+1,type:TYPE_MAP[i+1]||'',enc:`cards_enc/${String(i+1).padStart(3,'0')}.card`,preview:`previews/${String(i+1).padStart(3,'0')}.webp`}));
+let cards=[];
+const cardsById=new Map();
+async function loadCardCatalog(){
+  const response=await fetch(CARD_CATALOG_URL,{cache:'no-store'});
+  if(!response.ok)throw new Error('Card catalog unavailable');
+  const data=await response.json();
+  if(!Array.isArray(data?.cards)||!data.cards.length)throw new Error('Invalid card catalog');
+  const seen=new Set();
+  const parsed=data.cards.map(item=>{
+    const id=Number(item?.id);
+    if(!Number.isInteger(id)||id<1||id>9999||seen.has(id)||typeof item.enc!=='string'||typeof item.preview!=='string')throw new Error('Invalid card catalog');
+    seen.add(id);
+    return {id,type:typeof item.type==='string'?item.type:'',enc:item.enc,preview:item.preview};
+  }).sort((a,b)=>a.id-b.id);
+  cards=parsed;cardsById.clear();for(const card of cards)cardsById.set(card.id,card);
+}
+function cardById(id){return cardsById.get(Number(id))||null;}
 const state=loadState();
 const decryptedUrls=new Map();
 const grid=document.getElementById('albumGrid');
 const ownedCount=document.getElementById('ownedCount');
+const totalCount=document.getElementById('totalCount');
 const gallery=document.getElementById('gallery');
 const galleryTrack=document.getElementById('galleryTrack');
 const galleryMeta=document.getElementById('galleryMeta');
@@ -38,6 +58,7 @@ const closeQrScannerButton=document.getElementById('closeQrScanner');
 const qrVideo=document.getElementById('qrVideo');
 const qrStatus=document.getElementById('qrStatus');
 let galleryIndex=0,revealCancelled=false,revealRunning=false,galleryScrollTimer=null;
+let galleryPinchCard=null,galleryPinchStartDistance=0,galleryPinchScale=1;
 let qrStream=null,qrDetector=null,qrScanning=false,qrFrameHandle=null;
 let qrPublicKeyPromise=null;
 const REVEAL_DURATION=2600;
@@ -121,13 +142,13 @@ async function decodePayload(text){
   if(!/^[A-Za-z0-9_-]{8,128}$/.test(packId)||!Array.isArray(p.cards)||p.cards.length<1||p.cards.length>5)throw new Error('Invalid QR payload');
   const ids=new Set();
   for(const item of p.cards){
-    if(!Number.isInteger(item.id)||item.id<1||item.id>20||ids.has(item.id)||typeof item.k!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(item.k))throw new Error('Invalid QR card');
+    if(!Number.isInteger(item.id)||!cardById(item.id)||ids.has(item.id)||typeof item.k!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(item.k))throw new Error('Invalid QR card');
     ids.add(item.id);
   }
   p.pack=packId;
   return p;
 }
-async function decryptCard(id,keyText){const cached=decryptedUrls.get(id);if(cached?.key===keyText)return cached.url;const c=cards[id-1];const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('Invalid encrypted file');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,{key:keyText,url});return url;}
+async function decryptCard(id,keyText){const cached=decryptedUrls.get(id);if(cached?.key===keyText)return cached.url;const c=cardById(id);if(!c)throw new Error('Unknown card');const packed=new Uint8Array(await (await fetch(c.enc,{cache:'no-store'})).arrayBuffer());if(packed.length<29)throw new Error('Invalid encrypted file');const iv=packed.slice(0,12),cipher=packed.slice(12);const key=await crypto.subtle.importKey('raw',b64uToBytes(keyText),{name:'AES-GCM'},false,['decrypt']);const aad=new TextEncoder().encode(`ALBUMDIGITALE:CARD:${pad(id)}`);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);const url=URL.createObjectURL(new Blob([plain],{type:'image/webp'}));decryptedUrls.set(id,{key:keyText,url});return url;}
 async function imageFor(c){if(!isUnlocked(c.id))return c.preview;try{return await decryptCard(c.id,state.keys[c.id]);}catch(e){return c.preview;}}
 
 async function render(){
@@ -140,7 +161,8 @@ async function render(){
     btn.innerHTML=`<div class="card-frame"><img class="card-image" src="${src}" alt="Card ${pad(c.id)}"><div class="shade"></div></div><div class="slot-meta"><span>#${pad(c.id)}</span><span>${c.type}</span></div>`;
     btn.addEventListener('click',()=>openGallery(i));slot.appendChild(btn);grid.appendChild(slot);
   }
-  ownedCount.textContent=Object.keys(state.keys).filter(k=>isUnlocked(Number(k))).length;
+  ownedCount.textContent=cards.filter(c=>isUnlocked(c.id)).length;
+  totalCount.textContent=cards.length;
 }
 
 async function buildGallery(){
@@ -149,6 +171,7 @@ async function buildGallery(){
     const c=cards[i],locked=!isUnlocked(c.id),src=await imageFor(c);
     const slide=document.createElement('article');slide.className='gallery-slide';slide.dataset.index=String(i);
     slide.innerHTML=`<div class="gallery-card${locked?' locked':''}"><img class="card-image" src="${src}" alt="Card ${pad(c.id)}"><div class="shade"></div></div>`;
+    const galleryCard=slide.querySelector('.gallery-card');if(galleryCard)installGalleryPinch(galleryCard);
     galleryTrack.appendChild(slide);
   }
 }
@@ -188,12 +211,53 @@ function scrollGalleryTo(i,behavior='auto'){
   updateGalleryMeta(i);
 }
 
+
+function touchDistance(touches){
+  if(!touches||touches.length<2)return 0;
+  const dx=touches[0].clientX-touches[1].clientX;
+  const dy=touches[0].clientY-touches[1].clientY;
+  return Math.hypot(dx,dy);
+}
+function resetGalleryPinch(card=galleryPinchCard){
+  if(!card)return;
+  card.classList.remove('is-pinching');
+  card.style.transform='scale(1)';
+  card.style.removeProperty('--pinch-scale');
+  if(card===galleryPinchCard){galleryPinchCard=null;galleryPinchStartDistance=0;galleryPinchScale=1;}
+}
+function installGalleryPinch(card){
+  card.addEventListener('touchstart',e=>{
+    if(e.touches.length!==2)return;
+    if(galleryPinchCard&&galleryPinchCard!==card)resetGalleryPinch(galleryPinchCard);
+    galleryPinchCard=card;
+    galleryPinchStartDistance=touchDistance(e.touches);
+    galleryPinchScale=1;
+    card.classList.add('is-pinching');
+    e.preventDefault();
+  },{passive:false});
+  card.addEventListener('touchmove',e=>{
+    if(card!==galleryPinchCard||e.touches.length!==2||galleryPinchStartDistance<=0)return;
+    const distance=touchDistance(e.touches);
+    galleryPinchScale=Math.max(1,Math.min(1.5,distance/galleryPinchStartDistance));
+    card.style.transform=`scale(${galleryPinchScale})`;
+    e.preventDefault();
+  },{passive:false});
+  const finish=e=>{
+    if(card!==galleryPinchCard)return;
+    if(e.touches&&e.touches.length>=2)return;
+    resetGalleryPinch(card);
+  };
+  card.addEventListener('touchend',finish,{passive:true});
+  card.addEventListener('touchcancel',finish,{passive:true});
+}
+
 async function openGallery(i){
   galleryIndex=i;await buildGallery();updateGalleryMeta(i);gallery.showModal();
   requestAnimationFrame(()=>requestAnimationFrame(()=>scrollGalleryTo(i,'auto')));
 }
 
-document.getElementById('closeGallery').addEventListener('click',()=>gallery.close());
+document.getElementById('closeGallery').addEventListener('click',()=>{resetGalleryPinch();gallery.close();});
+gallery.addEventListener('close',()=>resetGalleryPinch());
 
 galleryTrack.addEventListener('scroll',()=>{
   clearTimeout(galleryScrollTimer);
@@ -223,8 +287,9 @@ async function loadRevealImage(img,src){
 }
 async function playCardReveal(id){
   revealCard.classList.remove('is-running');
-  revealText.textContent=`REVEAL #${pad(id)}${cards[id-1].type?' '+cards[id-1].type:''}`;
-  await loadRevealImage(revealPreviewImage,cards[id-1].preview);
+  const revealCatalogCard=cardById(id);if(!revealCatalogCard)throw new Error('Unknown card');
+  revealText.textContent=`REVEAL #${pad(id)}${revealCatalogCard.type?' '+revealCatalogCard.type:''}`;
+  await loadRevealImage(revealPreviewImage,revealCatalogCard.preview);
   const fullSrc=await decryptCard(id,state.keys[id]);
   await loadRevealImage(revealFullImage,fullSrc);
   if(revealCancelled)return;
@@ -244,7 +309,7 @@ async function importQr(text){
   for(const item of p.cards){if(!isUnlocked(item.id))targets.push(item.id);state.keys[item.id]=item.k;}
   state.usedQr.add(p.pack);saveState();
   if(!targets.length){toast.textContent='NO NEW CARDS';toast.hidden=false;await render();return;}
-  revealRunning=true;revealCancelled=false;toast.hidden=true;revealCard.classList.remove('is-running');revealBar.hidden=false;document.body.classList.add('reveal-active');ownedCount.textContent=Object.keys(state.keys).filter(k=>isUnlocked(Number(k))).length;
+  revealRunning=true;revealCancelled=false;toast.hidden=true;revealCard.classList.remove('is-running');revealBar.hidden=false;document.body.classList.add('reveal-active');ownedCount.textContent=cards.filter(c=>isUnlocked(c.id)).length;
   for(const id of targets){
     if(revealCancelled)break;
     try{await playCardReveal(id);}catch(e){toast.textContent=`DECRYPTION ERROR #${pad(id)}`;toast.hidden=false;break;}
@@ -333,14 +398,97 @@ async function consumeQrFromLocation(){
   await importQr(q);
 }
 
+let swRegistration=null;
+let pendingRemoteVersion=null;
+const openMenuButton=document.getElementById('openMenu');
+const closeMenuButton=document.getElementById('closeMenu');
+const sideMenu=document.getElementById('sideMenu');
+const menuBackdrop=document.getElementById('menuBackdrop');
+const checkUpdateButton=document.getElementById('checkUpdate');
+const openAboutButton=document.getElementById('openAbout');
+const aboutDialog=document.getElementById('aboutDialog');
+const closeAboutButton=document.getElementById('closeAbout');
+const updateDialog=document.getElementById('updateDialog');
+const updateTitle=document.getElementById('updateTitle');
+const updateMessage=document.getElementById('updateMessage');
+const updateNowButton=document.getElementById('updateNow');
+const updateLaterButton=document.getElementById('updateLater');
+document.getElementById('appVersion').textContent=APP_VERSION;
+document.getElementById('aboutVersion').textContent=APP_VERSION;
+function setMenu(open){sideMenu.classList.toggle('is-open',open);sideMenu.setAttribute('aria-hidden',String(!open));menuBackdrop.hidden=!open;}
+openMenuButton?.addEventListener('click',()=>setMenu(true));
+closeMenuButton?.addEventListener('click',()=>setMenu(false));
+menuBackdrop?.addEventListener('click',()=>setMenu(false));
+openAboutButton?.addEventListener('click',()=>{setMenu(false);aboutDialog.showModal();});
+closeAboutButton?.addEventListener('click',()=>aboutDialog.close());
+aboutDialog?.addEventListener('cancel',e=>{e.preventDefault();aboutDialog.close();});
+updateLaterButton?.addEventListener('click',()=>updateDialog.close());
+
+async function fetchRemoteVersion(){
+  const response=await fetch(`${VERSION_URL}?check=${Date.now()}`,{cache:'no-store'});
+  if(!response.ok)throw new Error('Update server unavailable');
+  const data=await response.json();
+  if(!Number.isInteger(data?.build)||typeof data.version!=='string')throw new Error('Invalid update information');
+  return data;
+}
+function showUpdateState(title,message,canUpdate=false){
+  updateTitle.textContent=title;updateMessage.textContent=message;updateNowButton.hidden=!canUpdate;
+  if(!updateDialog.open)updateDialog.showModal();
+}
+async function checkForUpdate({silent=false}={}){
+  try{
+    const remote=await fetchRemoteVersion();pendingRemoteVersion=remote;
+    if(remote.build>APP_BUILD){
+      showUpdateState(`VERSION ${remote.version} AVAILABLE`,remote.notes||'A new version of Digital Album is available.',true);
+      return true;
+    }
+    if(!silent)showUpdateState('UP TO DATE',`Digital Album ${APP_VERSION} is the latest version.`,false);
+    return false;
+  }catch(e){
+    if(!silent)showUpdateState('OFFLINE / UNAVAILABLE','Unable to check for updates. The album can continue to work offline.',false);
+    return false;
+  }
+}
+async function activateWaitingWorker(reg){
+  if(reg?.waiting){reg.waiting.postMessage({type:'SKIP_WAITING'});return true;}
+  return false;
+}
+async function installAvailableUpdate(){
+  updateNowButton.disabled=true;updateLaterButton.disabled=true;updateTitle.textContent='UPDATING…';updateMessage.textContent='Downloading the new version. Your unlocked cards will be preserved.';
+  try{
+    const reg=swRegistration||await navigator.serviceWorker.getRegistration();
+    if(!reg)throw new Error('Service Worker unavailable');
+    await reg.update();
+    if(await activateWaitingWorker(reg))return;
+    const worker=reg.installing;
+    if(worker){
+      await new Promise((resolve,reject)=>{
+        const done=()=>{if(worker.state==='installed')resolve();else if(worker.state==='redundant')reject(new Error('Update failed'));};
+        worker.addEventListener('statechange',done);done();
+      });
+      if(await activateWaitingWorker(reg))return;
+    }
+    const newest=await fetchRemoteVersion();
+    if(newest.build>APP_BUILD)throw new Error('New Service Worker not ready');
+    location.reload();
+  }catch(e){
+    updateTitle.textContent='UPDATE FAILED';updateMessage.textContent='The update could not be installed. Try again when the connection is stable.';updateNowButton.disabled=false;updateLaterButton.disabled=false;
+  }
+}
+checkUpdateButton?.addEventListener('click',()=>{setMenu(false);checkForUpdate({silent:false});});
+updateNowButton?.addEventListener('click',installAvailableUpdate);
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
-      const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update();
-      let refreshed=sessionStorage.getItem('album-sw-refreshed')==='1';
-      navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!refreshed){refreshed=true;sessionStorage.setItem('album-sw-refreshed','1');location.reload();}});
+      swRegistration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
+      navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload(),{once:true});
+      window.setTimeout(()=>checkForUpdate({silent:true}),3800);
     }catch(e){}
   });
 }
 
-render().then(consumeQrFromLocation);
+(async()=>{
+  try{await loadCardCatalog();await render();await consumeQrFromLocation();}
+  catch(e){toast.textContent=e.message||'Unable to load album';toast.hidden=false;}
+})();
