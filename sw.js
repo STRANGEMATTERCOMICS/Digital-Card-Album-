@@ -1,5 +1,5 @@
-const CACHE='strange-matter-collector-master-2026-08-29-v19-update-reliability';
-const CORE=["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./qr_public_key.json","./icons/icon-192.png","./icons/icon-512.png"];
+const CACHE='strange-matter-collector-master-2026-08-29-v20-final-icons';
+const CORE=["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./qr_public_key.json","./icons/icon-192.png","./icons/icon-512.png","./icons/icon-maskable-192.png","./icons/icon-maskable-512.png"];
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{

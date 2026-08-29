@@ -1,5 +1,5 @@
 {
-  "version": "19.0.0",
-  "build": 19,
-  "notes": "Improves Android/Chrome update reliability by combining Service Worker lifecycle events with polling of waiting/installing state, preventing false update-service timeouts."
+  "version": "20.0.0",
+  "build": 20,
+  "notes": "Adds the final STRANGE MATTER COLLECTOR application icons, including standard and Android maskable 192px and 512px variants."
 }

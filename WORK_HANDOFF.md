@@ -230,3 +230,13 @@ Il contenuto di Work deve essere aggiornato insieme alla MASTER. Work non deve p
 - Conservato il feedback v18: UPDATE appare subito, countdown solo se l'handover supera 1 s, UPDATE COMPLETE visibile circa 1 s prima del reload.
 - Branding STRANGE MATTER COLLECTOR e rimozione ENCRYPTED invariati.
 - Nessuna modifica a QR, collection storage, gallery, reveal o card assets.
+
+
+## MASTER v20 — FINAL APP ICONS (2026-08-29)
+- Integrated final STRANGE MATTER COLLECTOR icon assets.
+- Standard PWA icons: `icons/icon-192.png`, `icons/icon-512.png`.
+- Android maskable icons: `icons/icon-maskable-192.png`, `icons/icon-maskable-512.png`.
+- `manifest.webmanifest` now declares both `any` and `maskable` icon purposes.
+- Service Worker core cache includes all four icon files.
+- App version/build and Service Worker cache bumped to v20.
+- No changes to QR, collection storage, gallery, reveal, update logic or Patreon About link.

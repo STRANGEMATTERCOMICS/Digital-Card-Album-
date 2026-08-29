@@ -13,7 +13,7 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='19.0.0'; const APP_BUILD=19;
+const APP_VERSION='20.0.0'; const APP_BUILD=20;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
