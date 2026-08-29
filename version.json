@@ -1,5 +1,5 @@
 {
-  "version": "12.0.0",
-  "build": 12,
-  "notes": "Adds safe Refresh to rebuild the album without affecting unlocked cards or update state."
+  "version": "13.0.0",
+  "build": 13,
+  "notes": "Adds 2x pinch zoom with two-finger pan and auto-reset, plus temporary popup notifications."
 }

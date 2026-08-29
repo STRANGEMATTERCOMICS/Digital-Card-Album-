@@ -1,10 +1,10 @@
-# ALBUM DIGITALE — MASTER v12 REFRESH
+# ALBUM DIGITALE — MASTER v13 REFRESH
 
 **Master ufficiale:** 2026-08-29 v11 UPDATE READY  
 **Base obbligatoria per ogni modifica futura:** `ALBUM_DIGITALE_MASTER_2026-08-29_v11_UPDATE_READY`  
 **Regola:** non usare più vecchi pacchetti `WORK_TRANSFER`, `SPLASH_FIXED`, `SPLASH_GALLERY_FIXED` o precedenti MASTER come base. Ogni sviluppo deve partire da questa v11 o da una release successiva esplicitamente dichiarata MASTER.
 
-## Stato consolidato della MASTER v12
+## Stato consolidato della MASTER v13
 - PWA mobile-first destinata a GitHub Pages e distribuzione tramite Patreon/link diretto.
 - Catalogo card dinamico tramite `cards.json`; la release corrente contiene 20 slot, 2 card per riga, scroll verticale.
 - Il numero di slot non è più hardcoded nell’interfaccia o nel validatore QR: nuove release possono aggiungere slot e asset aggiornando `cards.json`.
@@ -94,12 +94,12 @@
 - `version.json` viene richiesto dalla rete con cache disabilitata per il controllo aggiornamenti.
 
 ## Cache / Service Worker
-- Cache corrente MASTER v12: `album-digitale-master-2026-08-29-v12-refresh`.
+- Cache corrente MASTER v13: `album-digitale-master-2026-08-29-v12-refresh`.
 - `qr_public_key.json` è inclusa nel precache per consentire verifica firme anche offline.
 - A ogni release pubblicata deve cambiare il nome/versione della cache.
 - Obiettivo prioritario: evitare il riuso di HTML/JS/preview obsolete dopo un aggiornamento GitHub.
 
-## File principali della MASTER v12
+## File principali della MASTER v13
 - `index.html` — struttura UI.
 - `style.css` — album, splash, gallery, reveal.
 - `app.js` — stato collezione, decifratura, QR firmati, scanner, reveal, gallery e fondo adattivo.
@@ -160,3 +160,15 @@
 
 ## Regola di sincronizzazione Work
 Il contenuto di Work deve essere aggiornato insieme alla MASTER. Work non deve più contenere soltanto `index.html` o un handoff obsoleto: deve riflettere la struttura e lo stato dell'ultima release ufficiale, oppure indicare esplicitamente che la MASTER ZIP è la fonte primaria.
+
+
+## MASTER v13 — PINCH PAN + POPUP NOTIFICATIONS (2026-08-29)
+- Gallery pinch maximum increased from 1.5x to 2x.
+- While two fingers remain on the card, their midpoint can pan the enlarged image.
+- Pan is clamped so the card cannot be dragged completely away.
+- One-finger horizontal gallery navigation remains conceptually separate from two-finger inspection.
+- Releasing the pinch automatically recenters and returns the card to 1x with the existing short transition.
+- Footer-style status messages replaced by temporary floating popup/toast notifications.
+- Notifications close automatically after about 2.6 seconds (longer only for startup/load errors).
+- REFRESH, UPDATE, ABOUT and collection persistence behavior remain unchanged.
+- Service Worker cache bumped to v13.

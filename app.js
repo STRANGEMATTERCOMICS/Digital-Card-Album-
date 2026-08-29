@@ -13,8 +13,8 @@ window.setTimeout(dismissSplash,3000);
 async function lockPortrait(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait');}catch(e){}}
 window.addEventListener('load',lockPortrait,{once:true});
 
-const APP_VERSION='12.0.0';
-const APP_BUILD=12;
+const APP_VERSION='13.0.0';
+const APP_BUILD=13;
 const CARD_CATALOG_URL='./cards.json';
 const VERSION_URL='./version.json';
 const STORAGE_KEY='album-digitale-encrypted-v1';
@@ -58,10 +58,24 @@ const closeQrScannerButton=document.getElementById('closeQrScanner');
 const qrVideo=document.getElementById('qrVideo');
 const qrStatus=document.getElementById('qrStatus');
 let galleryIndex=0,revealCancelled=false,revealRunning=false,galleryScrollTimer=null;
-let galleryPinchCard=null,galleryPinchStartDistance=0,galleryPinchScale=1;
+let galleryPinchCard=null,galleryPinchStartDistance=0,galleryPinchScale=1,galleryPinchStartCenter=null,galleryPinchX=0,galleryPinchY=0,galleryPinchBaseWidth=0,galleryPinchBaseHeight=0;
 let qrStream=null,qrDetector=null,qrScanning=false,qrFrameHandle=null;
 let qrPublicKeyPromise=null;
 const REVEAL_DURATION=2600;
+let toastTimer=null;
+function hideToast(){
+  if(!toast)return;
+  clearTimeout(toastTimer);toastTimer=null;
+  toast.classList.remove('is-visible');
+  window.setTimeout(()=>{if(!toast.classList.contains('is-visible'))toast.hidden=true;},180);
+}
+function showToast(message,duration=2600){
+  if(!toast||!message)return;
+  clearTimeout(toastTimer);
+  toast.textContent=message;toast.hidden=false;
+  requestAnimationFrame(()=>toast.classList.add('is-visible'));
+  toastTimer=window.setTimeout(hideToast,duration);
+}
 
 function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const p=JSON.parse(raw);return {keys:p.keys||{},usedQr:new Set(p.usedQr||[])};}}catch(e){}return {keys:{},usedQr:new Set()};}
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify({keys:state.keys,usedQr:[...state.usedQr]}));}
@@ -218,12 +232,17 @@ function touchDistance(touches){
   const dy=touches[0].clientY-touches[1].clientY;
   return Math.hypot(dx,dy);
 }
+function touchCenter(touches){
+  if(!touches||touches.length<2)return null;
+  return {x:(touches[0].clientX+touches[1].clientX)/2,y:(touches[0].clientY+touches[1].clientY)/2};
+}
 function resetGalleryPinch(card=galleryPinchCard){
   if(!card)return;
   card.classList.remove('is-pinching');
-  card.style.transform='scale(1)';
-  card.style.removeProperty('--pinch-scale');
-  if(card===galleryPinchCard){galleryPinchCard=null;galleryPinchStartDistance=0;galleryPinchScale=1;}
+  card.style.transform='translate3d(0,0,0) scale(1)';
+  if(card===galleryPinchCard){
+    galleryPinchCard=null;galleryPinchStartDistance=0;galleryPinchScale=1;galleryPinchStartCenter=null;galleryPinchX=0;galleryPinchY=0;galleryPinchBaseWidth=0;galleryPinchBaseHeight=0;
+  }
 }
 function installGalleryPinch(card){
   card.addEventListener('touchstart',e=>{
@@ -231,15 +250,22 @@ function installGalleryPinch(card){
     if(galleryPinchCard&&galleryPinchCard!==card)resetGalleryPinch(galleryPinchCard);
     galleryPinchCard=card;
     galleryPinchStartDistance=touchDistance(e.touches);
-    galleryPinchScale=1;
+    galleryPinchStartCenter=touchCenter(e.touches);
+    galleryPinchScale=1;galleryPinchX=0;galleryPinchY=0;
+    const baseRect=card.getBoundingClientRect();galleryPinchBaseWidth=baseRect.width;galleryPinchBaseHeight=baseRect.height;
     card.classList.add('is-pinching');
     e.preventDefault();
   },{passive:false});
   card.addEventListener('touchmove',e=>{
-    if(card!==galleryPinchCard||e.touches.length!==2||galleryPinchStartDistance<=0)return;
+    if(card!==galleryPinchCard||e.touches.length!==2||galleryPinchStartDistance<=0||!galleryPinchStartCenter)return;
     const distance=touchDistance(e.touches);
-    galleryPinchScale=Math.max(1,Math.min(1.5,distance/galleryPinchStartDistance));
-    card.style.transform=`scale(${galleryPinchScale})`;
+    const center=touchCenter(e.touches);
+    galleryPinchScale=Math.max(1,Math.min(2,distance/galleryPinchStartDistance));
+    const maxX=Math.max(0,galleryPinchBaseWidth*(galleryPinchScale-1)/2);
+    const maxY=Math.max(0,galleryPinchBaseHeight*(galleryPinchScale-1)/2);
+    galleryPinchX=Math.max(-maxX,Math.min(maxX,center.x-galleryPinchStartCenter.x));
+    galleryPinchY=Math.max(-maxY,Math.min(maxY,center.y-galleryPinchStartCenter.y));
+    card.style.transform=`translate3d(${galleryPinchX}px,${galleryPinchY}px,0) scale(${galleryPinchScale})`;
     e.preventDefault();
   },{passive:false});
   const finish=e=>{
@@ -300,22 +326,22 @@ async function playCardReveal(id){
 }
 async function importQr(text){
   if(revealRunning)return;
-  let p;try{p=await decodePayload(text);}catch(e){toast.textContent=e.message;toast.hidden=false;return;}
-  if(state.usedQr.has(p.pack)){toast.textContent='QR CODE ALREADY USED ON THIS DEVICE';toast.hidden=false;return;}
+  let p;try{p=await decodePayload(text);}catch(e){showToast(e.message);return;}
+  if(state.usedQr.has(p.pack)){showToast('QR CODE ALREADY USED ON THIS DEVICE');return;}
   try{
     for(const item of p.cards)await decryptCard(item.id,item.k);
-  }catch(e){toast.textContent='QR CARD KEY MISMATCH';toast.hidden=false;return;}
+  }catch(e){showToast('QR CARD KEY MISMATCH');return;}
   const targets=[];
   for(const item of p.cards){if(!isUnlocked(item.id))targets.push(item.id);state.keys[item.id]=item.k;}
   state.usedQr.add(p.pack);saveState();
-  if(!targets.length){toast.textContent='NO NEW CARDS';toast.hidden=false;await render();return;}
-  revealRunning=true;revealCancelled=false;toast.hidden=true;revealCard.classList.remove('is-running');revealBar.hidden=false;document.body.classList.add('reveal-active');ownedCount.textContent=cards.filter(c=>isUnlocked(c.id)).length;
+  if(!targets.length){showToast('NO NEW CARDS');await render();return;}
+  revealRunning=true;revealCancelled=false;hideToast();revealCard.classList.remove('is-running');revealBar.hidden=false;document.body.classList.add('reveal-active');ownedCount.textContent=cards.filter(c=>isUnlocked(c.id)).length;
   for(const id of targets){
     if(revealCancelled)break;
-    try{await playCardReveal(id);}catch(e){toast.textContent=`DECRYPTION ERROR #${pad(id)}`;toast.hidden=false;break;}
+    try{await playCardReveal(id);}catch(e){showToast(`DECRYPTION ERROR #${pad(id)}`);break;}
     if(!revealCancelled)await waitForReveal(180);
   }
-  revealCard.classList.remove('is-running');revealBar.hidden=true;document.body.classList.remove('reveal-active');await render();revealRunning=false;toast.textContent=`${targets.length} NEW CARDS UNLOCKED`;toast.hidden=false;
+  revealCard.classList.remove('is-running');revealBar.hidden=true;document.body.classList.remove('reveal-active');await render();revealRunning=false;showToast(`${targets.length} NEW CARDS UNLOCKED`);
 }
 
 document.getElementById('skipReveal').addEventListener('click',()=>{revealCancelled=true;revealCard.classList.remove('is-running');revealBar.hidden=true;document.body.classList.remove('reveal-active');});
@@ -349,15 +375,13 @@ async function scanQrFrame(){
 
 async function openQrScanner(){
   if(revealRunning)return;
-  toast.hidden=true;
+  hideToast();
   if(!('BarcodeDetector' in window)){
-    toast.textContent='QR SCANNING IS NOT SUPPORTED BY THIS BROWSER';
-    toast.hidden=false;
+    showToast('QR SCANNING IS NOT SUPPORTED BY THIS BROWSER');
     return;
   }
   if(!navigator.mediaDevices?.getUserMedia){
-    toast.textContent='CAMERA NOT AVAILABLE';
-    toast.hidden=false;
+    showToast('CAMERA NOT AVAILABLE');
     return;
   }
   try{
@@ -374,8 +398,7 @@ async function openQrScanner(){
     qrFrameHandle=requestAnimationFrame(scanQrFrame);
   }catch(e){
     stopQrScanner();
-    toast.textContent=e?.name==='NotAllowedError'?'CAMERA PERMISSION DENIED':'UNABLE TO START QR SCANNER';
-    toast.hidden=false;
+    showToast(e?.name==='NotAllowedError'?'CAMERA PERMISSION DENIED':'UNABLE TO START QR SCANNER');
   }
 }
 
@@ -430,7 +453,7 @@ async function refreshAlbum(){
   refreshAlbumButton.disabled=true;
   const previousText=refreshAlbumButton.textContent;
   refreshAlbumButton.textContent='REFRESHING…';
-  toast.hidden=true;
+  hideToast();
   try{
     if(qrScanning)stopQrScanner();
     if(gallery?.open){resetGalleryPinch();gallery.close();}
@@ -439,11 +462,9 @@ async function refreshAlbum(){
     state.usedQr=freshState.usedQr;
     await loadCardCatalog();
     await render();
-    toast.textContent='ALBUM REFRESHED';
-    toast.hidden=false;
+    showToast('ALBUM REFRESHED');
   }catch(e){
-    toast.textContent='REFRESH FAILED';
-    toast.hidden=false;
+    showToast('REFRESH FAILED');
   }finally{
     refreshAlbumButton.disabled=false;
     refreshAlbumButton.textContent=previousText;
@@ -517,5 +538,5 @@ if('serviceWorker' in navigator){
 
 (async()=>{
   try{await loadCardCatalog();await render();await consumeQrFromLocation();}
-  catch(e){toast.textContent=e.message||'Unable to load album';toast.hidden=false;}
+  catch(e){showToast(e.message||'Unable to load album',3600);}
 })();
